@@ -511,6 +511,7 @@ def normalize_sp(spmx):
     print(scaling_matrix.shape)
     print(spmx.shape)
     spmx = scaling_matrix.dot(spmx)
+    spmx = sp.csr_matrix(spmx)
     
     return spmx
 
