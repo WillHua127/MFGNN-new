@@ -500,14 +500,14 @@ def data_split(idx, dataset_name):
 
 def normalize_sp(spmx):
     print(spmx.shape)
-    rowsum = sp.csr_matrix(spmx.sum(axis=1)).transpose()
+    rowsum = sp.csr_matrix(spmx.sum(axis=1))#.transpose()
     print(rowsum.shape)
     r_inv= sp.csr_matrix.power(rowsum, -1)
     print(r_inv.shape)
     #r_inv[np.isinf(r_inv)] = 0.
     r_inv = r_inv.transpose()
     print(r_inv.shape)
-    scaling_matrix = sp.diags(r_inv.toarray()[0])
+    scaling_matrix = sp.diags(r_inv.toarray()[1])
     print(scaling_matrix.shape)
     print(spmx.shape)
     spmx = scaling_matrix.dot(spmx)
