@@ -500,7 +500,7 @@ def data_split(idx, dataset_name):
 
 def normalize_sp(spmx):
     print(spmx.shape)
-    rowsum = sp.csr_matrix(spmx.sum(axis=1))#.transpose()
+    rowsum = sp.csr_matrix(spmx.sum(axis=1)).transpose()
     print(rowsum.shape)
     r_inv= sp.csr_matrix.power(rowsum, -1)
     print(r_inv.shape)
