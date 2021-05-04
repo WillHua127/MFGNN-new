@@ -384,7 +384,8 @@ def full_load_data(dataset_name, sub_dataname=''):
             [label for _, label in sorted(G.nodes(data='label'), key=lambda x: x[0])])
         #print(len(G.edges))
      
-    #print(np.arange(len(np.unique(labels))))
+    print(np.arange(len(np.unique(labels))))
+    print(np.unique(labels))
     if dataset_name in {'deezer', 'yelpchi', 'snap'}:
         features = normalize_sp(features)
         features = sparse_mx_to_torch_sparse_tensor(features)
