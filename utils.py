@@ -262,17 +262,17 @@ def load_pokec_mat():
     edge_index = fulldata['edge_index']
     features = fulldata['node_feat'].astype(float)
     
-    print(features.shape)
+    #print(features.shape)
     n = features.shape[0]
     (src, tar) = edge_index
     A = sp.csr_matrix((np.ones(len(src)), 
                                  (np.array(src), np.array(tar))),
                                 shape=(n,n))
-    print(A.shape)
+    #print(A.shape)
     
     label = fulldata['label'].flatten()
     
-    print(label.shape)
+    #print(label.shape)
     return A, features, label
 
 def load_snap_mat(nclass=5):
@@ -500,9 +500,12 @@ def data_split(idx, dataset_name):
 
 def normalize_sp(spmx):
     rowsum = sp.csr_matrix(spmx.sum(axis=1))
+    print(rowsum.shape)
     r_inv= sp.csr_matrix.power(rowsum, -1)
+    print(r_inv.shape)
     #r_inv[np.isinf(r_inv)] = 0.
     r_inv = r_inv.transpose()
+    print(r_inv.shape)
     scaling_matrix = sp.diags(r_inv.toarray()[0])
     print(scaling_matrix.shape)
     print(spmx.shape)
