@@ -46,6 +46,33 @@ def preprocess_features(features):
     features = r_mat_inv.dot(features)
     return features
 
+
+def even_quantile_labels(vals, nclasses, verbose=True):
+    """ partitions vals into nclasses by a quantile based split,
+    where the first class is less than the 1/nclasses quantile,
+    second class is less than the 2/nclasses quantile, and so on
+    
+    vals is np array
+    returns an np array of int class labels
+    """
+    label = -1 * np.ones(vals.shape[0], dtype=np.int)
+    interval_lst = []
+    lower = -np.inf
+    for k in range(nclasses - 1):
+        upper = np.quantile(vals, (k + 1) / nclasses)
+        interval_lst.append((lower, upper))
+        inds = (vals >= lower) * (vals < upper)
+        label[inds] = k
+        lower = upper
+    label[vals >= lower] = nclasses - 1
+    interval_lst.append((lower, np.inf))
+    if verbose:
+        print('Class Label Intervals:')
+        for class_idx, interval in enumerate(interval_lst):
+            print(f'Class {class_idx}: [{interval[0]}, {interval[1]})]')
+    return label
+
+
 def load_data(dataset_str):
     """
     Loads input data from gcn/data directory
@@ -224,6 +251,28 @@ def load_yelpchi_dataset():
 
     return A, features, label
 
+
+def load_snap_mat(nclass=5):
+    if not path.exists(f'./data/snap_patents.mat'):
+        gdd.download_file_from_google_drive(
+            file_id= dataset_drive_url['snap-patents'], \
+            dest_path=f'./data/snap_patents.mat', showsize=True) 
+
+    fulldata = scipy.io.loadmat(f'./data/snap_patents.mat')
+    edge_index = fulldata['edge_index']
+    features = fulldata['features']
+    n = features.shape[0]
+    (src, tar) = edge_index
+    A = sp.csr_matrix((np.ones(len(src)), 
+                                 (np.array(src), np.array(tar))),
+                                shape=(n,n))
+    
+    years = fulldata['years'].flatten()
+    label = even_quantile_labels(years, nclass, verbose=False)
+    
+    return A, features, label
+
+
 def full_load_data(dataset_name, sub_dataname=''):
     #splits_file_path = 'splits/'+dataset_name+'_split_0.6_0.2_'+str(idx)+'.npz'
     if dataset_name in {'cora', 'citeseer', 'pubmed'}:
@@ -250,6 +299,9 @@ def full_load_data(dataset_name, sub_dataname=''):
         
     elif dataset_name in {'yelpchi'}:
         adj, features, labels = load_yelpchi_dataset()
+        
+    elif dataset_name in {'snap'}:
+        adj, features, labels = load_snap_mat()
         
     else:
         graph_adjacency_list_file_path = os.path.join('new_data', dataset_name, 'out1_graph_edges.txt')
@@ -308,12 +360,14 @@ def full_load_data(dataset_name, sub_dataname=''):
      
     #print(np.unique(labels))
     #print(np.arange(len(np.unique(labels))))
-    if dataset_name in {'deezer', 'yelpchi'}:
+    if dataset_name in {'deezer', 'yelpchi', 'snap'}:
         features = normalize_sp(features)
         features = sparse_mx_to_torch_sparse_tensor(features)
     else:
         features = preprocess_features(features)
         features = th.FloatTensor(features)
+        
+    adj.setdiag(0)
     
     num_features = features.shape[1]
     num_labels = len(np.unique(labels))
