@@ -261,13 +261,18 @@ def load_pokec_mat():
     fulldata = scipy.io.loadmat(f'./data/pokec.mat')
     edge_index = fulldata['edge_index']
     features = fulldata['node_feat'].astype(float)
+    
+    print(features.shape)
     n = features.shape[0]
     (src, tar) = edge_index
     A = sp.csr_matrix((np.ones(len(src)), 
                                  (np.array(src), np.array(tar))),
                                 shape=(n,n))
+    print(A.shape)
     
     label = fulldata['label'].flatten()
+    
+    print(label.shape)
     return A, features, label
 
 def load_snap_mat(nclass=5):
