@@ -504,7 +504,10 @@ def normalize_sp(spmx):
     #r_inv[np.isinf(r_inv)] = 0.
     r_inv = r_inv.transpose()
     scaling_matrix = sp.diags(r_inv.toarray()[0])
+    print(scaling_matrix.shape)
+    print(spmx.shape)
     spmx = scaling_matrix.dot(spmx)
+    
     return spmx
 
 def normalize(mx):
