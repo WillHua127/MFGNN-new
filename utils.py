@@ -260,7 +260,7 @@ def load_pokec_mat():
 
     fulldata = scipy.io.loadmat(f'./data/pokec.mat')
     edge_index = fulldata['edge_index']
-    features = fulldata['node_feat'].astype(float)
+    features = fulldata['node_feat'].astype(float).transpose()
     
     #print(features.shape)
     n = features.shape[0]
