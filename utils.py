@@ -252,6 +252,24 @@ def load_yelpchi_dataset():
     return A, features, label
 
 
+def load_pokec_mat():
+    if not path.exists(f'./data/pokec.mat'):
+        gdd.download_file_from_google_drive(
+            file_id= dataset_drive_url['pokec'], \
+            dest_path=f'./data/pokec.mat', showsize=True) 
+
+    fulldata = scipy.io.loadmat(f'./data/pokec.mat')
+    edge_index = fulldata['edge_index']
+    features = fulldata['node_feat'].astype(float)
+    n = features.shape[0]
+    (src, tar) = edge_index
+    A = sp.csr_matrix((np.ones(len(src)), 
+                                 (np.array(src), np.array(tar))),
+                                shape=(n,n))
+    
+    label = fulldata['label'].flatten()
+    return A, features, label
+
 def load_snap_mat(nclass=5):
     if not path.exists(f'./data/snap_patents.mat'):
         gdd.download_file_from_google_drive(
@@ -302,6 +320,9 @@ def full_load_data(dataset_name, sub_dataname=''):
         
     elif dataset_name in {'snap'}:
         adj, features, labels = load_snap_mat()
+        
+    elif dataset_name in {'pokec'}:
+        adj, features, labels = load_pokec_mat()
         
     else:
         graph_adjacency_list_file_path = os.path.join('new_data', dataset_name, 'out1_graph_edges.txt')
@@ -360,7 +381,7 @@ def full_load_data(dataset_name, sub_dataname=''):
      
     #print(np.unique(labels))
     #print(np.arange(len(np.unique(labels))))
-    if dataset_name in {'deezer', 'yelpchi', 'snap'}:
+    if dataset_name in {'deezer', 'yelpchi', 'snap', 'pokec'}:
         features = normalize_sp(features)
         features = sparse_mx_to_torch_sparse_tensor(features)
     else:
