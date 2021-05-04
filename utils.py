@@ -260,7 +260,7 @@ def load_snap_mat(nclass=5):
 
     fulldata = scipy.io.loadmat(f'./data/snap_patents.mat')
     edge_index = fulldata['edge_index']
-    features = fulldata['features']
+    features = fulldata['node_feat']
     n = features.shape[0]
     (src, tar) = edge_index
     A = sp.csr_matrix((np.ones(len(src)), 
