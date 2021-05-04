@@ -505,9 +505,9 @@ def normalize_sp(spmx):
     r_inv= sp.csr_matrix.power(rowsum, -1)
     print(r_inv.shape)
     #r_inv[np.isinf(r_inv)] = 0.
-    r_inv = r_inv.transpose()
+    r_inv = r_inv#.transpose()
     print(r_inv.shape)
-    scaling_matrix = sp.diags(r_inv.toarray()[1])
+    scaling_matrix = sp.diags(r_inv.toarray()[0])
     print(scaling_matrix.shape)
     print(spmx.shape)
     spmx = scaling_matrix.dot(spmx)
