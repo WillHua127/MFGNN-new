@@ -384,7 +384,7 @@ def full_load_data(dataset_name, sub_dataname=''):
             [label for _, label in sorted(G.nodes(data='label'), key=lambda x: x[0])])
         #print(len(G.edges))
      
-    #print(np.unique(labels))
+    print(features.shape)
     #print(np.arange(len(np.unique(labels))))
     if dataset_name in {'deezer', 'yelpchi', 'snap', 'pokec'}:
         features = normalize_sp(features)
