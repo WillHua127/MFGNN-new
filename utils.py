@@ -499,6 +499,7 @@ def data_split(idx, dataset_name):
     return train_mask, val_mask, test_mask
 
 def normalize_sp(spmx):
+    print(spmx.shape)
     rowsum = sp.csr_matrix(spmx.sum(axis=1))
     print(rowsum.shape)
     r_inv= sp.csr_matrix.power(rowsum, -1)
