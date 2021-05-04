@@ -507,7 +507,7 @@ def normalize_sp(spmx, take_trans=True):
     if take_trans:
         r_inv = r_inv.transpose()
     scaling_matrix = sp.diags(r_inv.toarray()[0])
-\    spmx = scaling_matrix.dot(spmx)
+\   spmx = scaling_matrix.dot(spmx)
     spmx = sp.csr_matrix(spmx)
     
     return spmx
