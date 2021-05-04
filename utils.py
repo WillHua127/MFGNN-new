@@ -387,7 +387,7 @@ def full_load_data(dataset_name, sub_dataname=''):
     print(features.shape)
     #print(np.arange(len(np.unique(labels))))
     if dataset_name in {'deezer', 'yelpchi', 'snap', 'pokec'}:
-        features = normalize_sp(features.transpose())
+        features = normalize_sp(features)
         features = sparse_mx_to_torch_sparse_tensor(features)
     else:
         features = preprocess_features(features)
