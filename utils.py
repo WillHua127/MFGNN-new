@@ -18,9 +18,16 @@ import scipy.io
 import csv
 from os import path
 from sklearn.preprocessing import label_binarize
+from google_drive_downloader import GoogleDriveDownloader as gdd
 
 sys.setrecursionlimit(99999)
 
+
+dataset_drive_url = {
+    'snap-patents' : '1ldh23TSY1PwXia6dU0MYcpyEgX-w3Hia', 
+    'pokec' : '1dNs5E7BrWJbgcHeQ_zuy5Ozp2tRCWG0y', 
+    'yelp-chi': '1fAXtTVQS4CfEk4asqrFw9EPmlUPGbGtJ', 
+}
 
 def encode_onehot(labels):
     classes = set(labels)
@@ -204,6 +211,19 @@ def load_fb_dataset(filename):
         
     return A, features, label
 
+
+def load_yelpchi_dataset():
+    if not path.exists(f'./data/yelpchi.mat'):
+            gdd.download_file_from_google_drive(
+                file_id= dataset_drive_url['yelp-chi'], \
+                dest_path=f'./data/yelpchi.mat', showsize=True) 
+    fulldata = scipy.io.loadmat(f'./data/yelpchi.mat')
+    A = fulldata['homo']
+    features = fulldata['features']
+    label = np.array(fulldata['label'], dtype=np.int).flatten()
+
+    return A, features, label
+
 def full_load_data(dataset_name, sub_dataname=''):
     #splits_file_path = 'splits/'+dataset_name+'_split_0.6_0.2_'+str(idx)+'.npz'
     if dataset_name in {'cora', 'citeseer', 'pubmed'}:
@@ -227,6 +247,9 @@ def full_load_data(dataset_name, sub_dataname=''):
         
     elif dataset_name in {'deezer'}:
         adj, features, labels = load_deezer_dataset()
+        
+    elif dataset_name in {'yelpchi'}:
+        adj, features, labels = load_yelpchi_dataset()
         
     else:
         graph_adjacency_list_file_path = os.path.join('new_data', dataset_name, 'out1_graph_edges.txt')
@@ -285,7 +308,7 @@ def full_load_data(dataset_name, sub_dataname=''):
      
     #print(np.unique(labels))
     #print(np.arange(len(np.unique(labels))))
-    if dataset_name in {'deezer'}:
+    if dataset_name in {'deezer', 'yelpchi'}:
         features = normalize_sp(features)
         features = sparse_mx_to_torch_sparse_tensor(features)
     else:
