@@ -15,6 +15,7 @@ class GraphConvolution(Module):
     """
 
     def __init__(self, in_features, out_features, bias=True, output_layer = 0):
+        super(GraphConvolution, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
         self.output_layer = output_layer
