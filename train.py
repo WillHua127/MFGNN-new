@@ -119,6 +119,7 @@ for args.lr, args.weight_decay, args.dropout in itertools.product(lr, weight_dec
         
         if args.cuda:
             adj = adj.cuda()
+            adj_high = adj_high.cuda()
             idx_train = idx_train.cuda()
             idx_val = idx_val.cuda()
             idx_test = idx_test.cuda()
