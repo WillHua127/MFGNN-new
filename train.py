@@ -69,7 +69,7 @@ if args.cuda:
 
 def test():
     model.eval()
-    output = model(features, adj)
+    output = model(features, adj, adj_high)
     pred = torch.argmax(F.softmax(output,dim=1) , dim=1)
     pred = F.one_hot(pred).float()
     output = F.log_softmax(output, dim=1)
@@ -137,7 +137,7 @@ for args.lr, args.weight_decay, args.dropout in itertools.product(lr, weight_dec
             t = time.time()
             model.train()
             optimizer.zero_grad()
-            output = model(features, adj)
+            output = model(features, adj, adj_high)
             #print(F.softmax(output,dim=1))
             output = F.log_softmax(output, dim=1)
             #print(output)
@@ -150,7 +150,7 @@ for args.lr, args.weight_decay, args.dropout in itertools.product(lr, weight_dec
                 # Evaluate validation set performance separately,
                 # deactivates dropout during validation run.
                 model.eval()
-                output = model(features, adj)
+                output = model(features, adj, adj_high)
                 output = F.log_softmax(output, dim=1)
 
             val_loss = F.nll_loss(output[idx_val], labels[idx_val])
