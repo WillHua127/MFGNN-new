@@ -408,9 +408,9 @@ def full_load_data(dataset_name, sub_dataname=''):
     # test_mask = th.BoolTensor(test_mask)
 
     adj = normalize_adj(adj+sp.eye(adj.shape[0]))
-    adj_high = sp.eye(g.shape[0]) - g
+    adj_high = sp.eye(adj.shape[0]) - adj
     adj = sparse_mx_to_torch_sparse_tensor(adj)
-    adj_high = sparse_mx_to_torch_sparse_tensor(g_high)
+    adj_high = sparse_mx_to_torch_sparse_tensor(adj_high)
     #g_high = g
     
     return adj, adj_high, features, labels #, train_mask, val_mask, test_mask
