@@ -94,6 +94,8 @@ best_std = 0
 best_dropout = None
 best_weight_decay = None
 best_lr = None
+best_time = 0
+best_epoch = 0
 
 lr = [0.05] #0.002,0.01,
 weight_decay = [1e-4,5e-4,5e-5] #5e-5,1e-4,5e-4,1e-3,5e-3
@@ -101,6 +103,8 @@ dropout = [0.1, 0.2, 0.3, 0.4, 0.5 ,0.6, 0.7, 0.8, 0.9]
 
 for args.lr, args.weight_decay, args.dropout in itertools.product(lr, weight_decay, dropout):
     result = np.zeros(5)
+    t_total = time.time()
+    num_epoch = 0
     for idx in range(5):
         idx_train, idx_val, idx_test = rand_train_test_idx(labels)
         #idx_train, idx_val, idx_test = random_disassortative_splits(labels, num_class)
@@ -129,6 +133,7 @@ for args.lr, args.weight_decay, args.dropout in itertools.product(lr, weight_dec
         best_test = 0
         best_training_loss = None
         for epoch in range(args.epochs):
+            num_epoch = num_epoch+1
             t = time.time()
             model.train()
             optimizer.zero_grad()
@@ -174,6 +179,8 @@ for args.lr, args.weight_decay, args.dropout in itertools.product(lr, weight_dec
         
         del model, optimizer
         if args.cuda: torch.cuda.empty_cache()
+    five_epochtime = time.time()-t_total
+    print("Total time %.4f, Total Epoch %.4f"%(five_epochtime, num_epoch))
     print("learning rate %.4f, weight decay %.6f, dropout %.4f, Test Result: %.4f"%(args.lr, args.weight_decay, args.dropout, np.mean(result)))
     if np.mean(result)>best_result:
             best_result = np.mean(result)
@@ -181,7 +188,9 @@ for args.lr, args.weight_decay, args.dropout in itertools.product(lr, weight_dec
             best_dropout = args.dropout
             best_weight_decay = args.weight_decay
             best_lr = args.lr
+            best_time = five_epochtime
+            best_epoch = num_epoch
             
-print("Best learning rate %.4f, Best weight decay %.6f, dropout %.4f, Test Mean: %.4f, Test Std: %.4f"%(best_lr, best_weight_decay, best_dropout, best_result, best_std))
+print("Best learning rate %.4f, Best weight decay %.6f, dropout %.4f, Test Mean: %.4f, Test Std: %.4f, Time/Run: %.5f, Time/Epoch: %.5f"%(best_lr, best_weight_decay, best_dropout, best_result, best_std, best_time/5, best_time/best_epoch))
 
 
