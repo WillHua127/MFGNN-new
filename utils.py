@@ -410,7 +410,7 @@ def full_load_data(dataset_name, sub_dataname=''):
     adj = normalize_adj(adj+sp.eye(adj.shape[0]))
     #adj_high = sp.eye(adj.shape[0]) - adj
     adj = sparse_mx_to_torch_sparse_tensor(adj)
-    adj_high = sparse_mx_to_torch_sparse_tensor(adj_high)
+    #adj_high = sparse_mx_to_torch_sparse_tensor(adj_high)
     #g_high = g
     
     return adj, 0, features, labels #, train_mask, val_mask, test_mask
