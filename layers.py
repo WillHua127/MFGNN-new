@@ -62,11 +62,11 @@ class GraphConvolution(Module):
  
         return torch.sigmoid(att_low),torch.sigmoid(att_high),torch.sigmoid(att_mlp)
 
-    def forward(self, input, adj_low, adj_hhigh):
+    def forward(self, input, adj_low, adj_high):
         #adj = adj.to_dense()
-        nnodes = adj_low.size(1)
+        #nnodes = adj_low.size(1)
         #adj_low = adj #self.I * torch.eye(nnodes) + self.P * adj
-        adj_high = torch.eye(nnodes) - adj_low
+        #adj_high = torch.eye(nnodes) - adj_low
         support_low = torch.mm(input, self.weight_low)
         support_low = F.relu(support_low) #+self.bias_low
         output_low = torch.spmm(adj_low, support_low)
