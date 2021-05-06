@@ -64,7 +64,7 @@ class GraphConvolution(Module):
 
     def forward(self, input, adj_low, adj_hhigh):
         #adj = adj.to_dense()
-        nnodes = adj.size(1)
+        nnodes = adj_low.size(1)
         #adj_low = adj #self.I * torch.eye(nnodes) + self.P * adj
         adj_high = torch.eye(nnodes) - adj_low
         support_low = torch.mm(input, self.weight_low)
