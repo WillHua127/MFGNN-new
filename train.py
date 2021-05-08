@@ -11,7 +11,7 @@ import torch.optim as optim
 import matplotlib
 import itertools
 
-from utils import load_data, accuracy, full_load_data, data_split, reconstruct, random_disassortative_splits, rand_train_test_idx
+from utils import load_data, accuracy, full_load_data, data_split, reconstruct, random_disassortative_splits, rand_train_test_idx, mfsgc_precompute
 from models import GCN
 
 from sklearn.multiclass import OneVsRestClassifier
@@ -39,6 +39,8 @@ parser.add_argument('--dataset', type=str,
                     help='Dataset name.', default = 'film')
 parser.add_argument('--model', type=str,
                     help='Dataset name.', default = 'mfgcn')
+parser.add_argument('--degree', type=int, default=1,
+                    help='sgc adjacency hop.')
 parser.add_argument('--sub_dataname', type=str,
                     help='subdata name.', default = 'DE')
 parser.add_argument('--dropout', type=float, default=0.1,
@@ -54,14 +56,31 @@ if args.cuda:
     torch.cuda.manual_seed(args.seed)
     
 
-# Load data
-adj, adj_high, features, labels = full_load_data(args.dataset_name, args.sub_dataname)
-num_class = labels.max()+1
-
+adj, adj_high, features, labels = full_load_data(args.dataset_name, args.sub_dataname, args.model)
 if args.cuda:
     features = features.cuda()
-    #adj = adj.cuda()
     labels = labels.cuda()
+    adj = adj.cuda()
+    if args.model != 'mfsgc':
+      adj_high = adj_high.cuda()
+    
+if args.model == 'mfsgc':
+  f_low, f_high = mfsgc_precompute(features, adj, args.degree)
+  del adj, adj_high, features
+  if args.cuda:
+    f_low = f_low.cuda()
+    f_high = f_high.cuda()  
+
+# Load data
+num_class = labels.max()+1
+
+
+
+
+#if args.cuda:
+    #features = features.cuda()
+    #adj = adj.cuda()
+    #labels = labels.cuda()
     #idx_train = idx_train.cuda()
     #idx_val = idx_val.cuda()
     #idx_test = idx_test.cuda()
