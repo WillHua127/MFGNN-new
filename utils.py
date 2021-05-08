@@ -29,6 +29,14 @@ dataset_drive_url = {
     'yelp-chi': '1fAXtTVQS4CfEk4asqrFw9EPmlUPGbGtJ', 
 }
 
+
+def mfsgc_precompute(features, adj, degree):
+    features_low = features
+    for i in range(degree):
+        features_low = torch.spmm(adj, features_low)
+    features_high = features - features_low
+    return features_low, features_high 
+
 def encode_onehot(labels):
     classes = set(labels)
     classes_dict = {c: np.identity(len(classes))[i, :] for i, c in
