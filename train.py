@@ -35,8 +35,10 @@ parser.add_argument('--hidden', type=int, default=32,
                     help='Number of hidden units.')
 parser.add_argument('--idx', type=int, default=0,
                     help='Split number.')
-parser.add_argument('--dataset_name', type=str,
+parser.add_argument('--dataset', type=str,
                     help='Dataset name.', default = 'film')
+parser.add_argument('--model', type=str,
+                    help='Dataset name.', default = 'mfgcn')
 parser.add_argument('--sub_dataname', type=str,
                     help='subdata name.', default = 'DE')
 parser.add_argument('--dropout', type=float, default=0.1,
