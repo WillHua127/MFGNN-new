@@ -10,7 +10,7 @@ from networkx.readwrite import json_graph
 import pdb
 import os
 import re
-import torch as th
+#import torch as th
 from sklearn.model_selection import ShuffleSplit
 from numpy.linalg import matrix_power
 import dgl
