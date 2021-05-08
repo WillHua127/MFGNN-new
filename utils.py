@@ -402,7 +402,7 @@ def full_load_data(dataset_name, sub_dataname=''):
         features = sparse_mx_to_torch_sparse_tensor(features)
     else:
         features = preprocess_features(features)
-        features = th.FloatTensor(features)
+        features = torch.FloatTensor(features)
         
     adj.setdiag(0)
     
@@ -410,7 +410,7 @@ def full_load_data(dataset_name, sub_dataname=''):
     num_labels = len(np.unique(labels))
     assert (np.array_equal(np.unique(labels), np.arange(len(np.unique(labels)))))
 
-    labels = th.LongTensor(labels)
+    labels = torch.LongTensor(labels)
     # train_mask = th.BoolTensor(train_mask)
     # val_mask = th.BoolTensor(val_mask)
     # test_mask = th.BoolTensor(test_mask)
