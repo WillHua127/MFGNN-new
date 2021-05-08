@@ -88,7 +88,7 @@ num_class = labels.max()+1
         
     
 
-def test():
+def test_mfgcn():
     model.eval()
     output = model(features, adj, adj_high)
     pred = torch.argmax(F.softmax(output,dim=1) , dim=1)
@@ -122,7 +122,9 @@ lr = [0.05, 0.01] #0.002,0.01,
 weight_decay = [1e-4,1e-3,5e-5] #5e-5,1e-4,5e-4,1e-3,5e-3
 dropout = [0.1, 0.2, 0.3, 0.4, 0.5 ,0.6, 0.7, 0.8, 0.9]
 
-for args.lr, args.weight_decay, args.dropout in itertools.product(lr, weight_decay, dropout):
+
+def train_mfgcn():
+  for args.lr, args.weight_decay, args.dropout in itertools.product(lr, weight_decay, dropout):
     result = np.zeros(5)
     t_total = time.time()
     num_epoch = 0
@@ -139,7 +141,7 @@ for args.lr, args.weight_decay, args.dropout in itertools.product(lr, weight_dec
                 dropout=args.dropout)
         
         if args.cuda:
-            adj = adj.cuda()
+            #adj = adj.cuda()
             #adj_high = adj_high.cuda()
             idx_train = idx_train.cuda()
             idx_val = idx_val.cuda()
@@ -182,7 +184,7 @@ for args.lr, args.weight_decay, args.dropout in itertools.product(lr, weight_dec
                 if val_acc >= vacc_mx and val_loss <= vlss_mn:
                     vacc_early_model = val_acc
                     vlss_early_model = val_loss
-                    best_test = test()
+                    best_test = test_mfgcn()
                     best_training_loss = loss_train
                 vacc_mx = np.max((val_acc, vacc_mx))
                 vlss_mn = np.min((val_loss, vlss_mn))
@@ -214,5 +216,7 @@ for args.lr, args.weight_decay, args.dropout in itertools.product(lr, weight_dec
             best_epoch = num_epoch
             
 print("Best learning rate %.4f, Best weight decay %.6f, dropout %.4f, Test Mean: %.4f, Test Std: %.4f, Time/Run: %.5f, Time/Epoch: %.5f"%(best_lr, best_weight_decay, best_dropout, best_result, best_std, best_time/5, best_time/best_epoch))
+
+
 
 
