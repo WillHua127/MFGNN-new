@@ -12,7 +12,7 @@ import matplotlib
 import itertools
 
 from utils import load_data, accuracy, full_load_data, data_split, reconstruct, random_disassortative_splits, rand_train_test_idx, mfsgc_precompute
-from models import GCN
+from models import GCN,SGC
 
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.linear_model import LinearRegression
@@ -96,6 +96,7 @@ def test_sgc(model, idx_train, idx_val, idx_test):
     loss_test = F.nll_loss(output[idx_test], labels[idx_test])
     acc_test = accuracy(output[idx_test], labels[idx_test])
     return acc_test
+  
   
 def test_mfgcn():
     model.eval()
