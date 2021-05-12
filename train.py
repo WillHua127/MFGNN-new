@@ -56,7 +56,7 @@ if args.cuda:
     torch.cuda.manual_seed(args.seed)
     
 
-adj, adj_high, features, labels = full_load_data(args.dataset, args.sub_dataname, args.model)
+adj, adj_high, features, labels = full_load_data(args.dataset, args.sub_dataname)
 if args.cuda:
     features = features.cuda()
     labels = labels.cuda()
