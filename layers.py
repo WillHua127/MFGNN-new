@@ -37,7 +37,7 @@ class GraphConvolution(Module):
         gain = nn.init.calculate_gain('relu')
         stdv = 1. / math.sqrt(self.weight_low.size(1))
         self.weight_low.data.uniform_(-stdv, stdv)
-        #self.weight_high.data.uniform_(-stdv, stdv)
+        self.weight_high.data.uniform_(-stdv, stdv)
         self.weight_mlp.data.uniform_(-stdv, stdv)
         nn.init.xavier_uniform_(self.att_vec_mlp.weight, gain=gain)
         nn.init.xavier_uniform_(self.att_vec_low.weight, gain=gain)
