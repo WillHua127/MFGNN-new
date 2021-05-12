@@ -20,7 +20,7 @@ class GraphConvolution(Module):
         self.out_features = out_features
         self.output_layer = output_layer
         self.weight_low = Parameter(torch.FloatTensor(in_features, out_features))
-        #self.weight_high = Parameter(torch.FloatTensor(in_features, out_features))
+        self.weight_high = Parameter(torch.FloatTensor(in_features, out_features))
         self.weight_mlp = Parameter(torch.FloatTensor(in_features, out_features))
         self.att_vec_mlp= nn.Linear(out_features, 1, bias=bias)
         self.att_vec_low = nn.Linear(out_features, 1, bias=bias)
@@ -68,15 +68,16 @@ class GraphConvolution(Module):
         #adj_low = adj #self.I * torch.eye(nnodes) + self.P * adj
         #adj_high = torch.eye(nnodes) - adj_low
         support_low = torch.mm(input, self.weight_low)
-        support_high = support_low - torch.spmm(adj_low, support_low)
+        #support_high = support_low - torch.spmm(adj_low, support_low)
+        support_high = torch.mm(input, self.weight_high)
         support_low = F.relu(support_low) #+self.bias_low
-        output_high = F.relu(support_high)
+        support_high = F.relu(support_high)
         output_low = torch.spmm(adj_low, support_low)
         
         
         #support_high = torch.mm(input, self.weight_high)
         #support_high = F.relu(support_high) #+self.bias_high
-        #output_high = torch.spmm(adj_high, support_high)
+        output_high = torch.spmm(adj_high, support_high)
         
         
         output_mlp = F.relu(torch.mm(input, self.weight_mlp)) # +self.bias_mlp
