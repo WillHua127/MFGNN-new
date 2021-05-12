@@ -98,7 +98,7 @@ def test_sgc(model, idx_train, idx_val, idx_test):
     return acc_test
   
   
-def test_mfgcn():
+def test_mfgcn(model, idx_train, idx_val, idx_test):
     model.eval()
     output = model(features, adj, adj_high)
     pred = torch.argmax(F.softmax(output,dim=1) , dim=1)
@@ -150,7 +150,7 @@ def train_gcn():
                     dropout=args.dropout)
 
             if args.cuda:
-                adj = adj.cuda()
+                #adj = adj.cuda()
                 idx_train = idx_train.cuda()
                 idx_val = idx_val.cuda()
                 idx_test = idx_test.cuda()
@@ -192,7 +192,7 @@ def train_gcn():
                     if val_acc >= vacc_mx and val_loss <= vlss_mn:
                         vacc_early_model = val_acc
                         vlss_early_model = val_loss
-                        best_test = test()
+                        best_test = test_mfgcn(model, idx_train, idx_val, idx_test)
                         best_training_loss = loss_train
                     vacc_mx = np.max((val_acc, vacc_mx))
                     vlss_mn = np.min((val_loss, vlss_mn))
