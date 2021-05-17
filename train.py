@@ -241,7 +241,7 @@ def train_sgc():
     dropout = [0.1, 0.2, 0.3, 0.4, 0.5 ,0.6, 0.7, 0.8, 0.9]
 
     for args.lr, args.weight_decay in itertools.product(lr, weight_decay):
-        result = np.zeros(5)
+        result = np.zeros(10)
         t_total = time.time()
         num_epoch = 0
         for idx in range(10):
