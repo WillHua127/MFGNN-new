@@ -13,7 +13,7 @@ import re
 #import torch as th
 from sklearn.model_selection import ShuffleSplit
 from numpy.linalg import matrix_power
-import dgl
+#import dgl
 import scipy.io
 import csv
 from os import path
