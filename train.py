@@ -31,7 +31,7 @@ parser.add_argument('--epochs', type=int, default=5000,
 #                    help='Initial learning rate.')
 #parser.add_argument('--weight_decay', type=float, default=5e-5,
 #                    help='Weight decay (L2 loss on parameters).')
-parser.add_argument('--hidden', type=int, default=32,
+parser.add_argument('--hidden', type=int, default=64,
                     help='Number of hidden units.')
 parser.add_argument('--idx', type=int, default=0,
                     help='Split number.')
