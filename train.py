@@ -138,8 +138,8 @@ def train_gcn():
         t_total = time.time()
         num_epoch = 0
         for idx in range(5):
-            #idx_train, idx_val, idx_test = rand_train_test_idx(labels)
-            idx_train, idx_val, idx_test = random_disassortative_splits(labels, num_class)
+            idx_train, idx_val, idx_test = rand_train_test_idx(labels)
+            #idx_train, idx_val, idx_test = random_disassortative_splits(labels, num_class)
             #rank = OneVsRestClassifier(LinearRegression()).fit(features[idx_train], labels[idx_train]).predict(features)
             #print(rank)
             #adj = reconstruct(old_adj, rank, num_class)
@@ -330,6 +330,6 @@ def train_sgc():
     print("Best learning rate %.4f, Best weight decay %.6f, dropout %.4f, Test Mean: %.4f, Test Std: %.4f, Time/Run: %.4f, Time/Epoch: %.4f"%(best_lr, best_weight_decay, 0, best_result, best_std, best_time/5, best_time/best_epoch))
     
 
-train_sgc()
+train_gcn()
 
 
