@@ -236,7 +236,7 @@ def train_sgc():
     best_time = 0
     best_epoch = 0
 
-    lr = [0.05, 0.01] #0.002,0.01,
+    lr = [0.05, 0.01, 0.002] #0.002,0.01,
     weight_decay = [1e-4,1e-3,5e-5,5e-4]
     dropout = [0.1, 0.2, 0.3, 0.4, 0.5 ,0.6, 0.7, 0.8, 0.9]
 
@@ -330,6 +330,6 @@ def train_sgc():
     print("Best learning rate %.4f, Best weight decay %.6f, dropout %.4f, Test Mean: %.4f, Test Std: %.4f, Time/Run: %.4f, Time/Epoch: %.4f"%(best_lr, best_weight_decay, 0, best_result, best_std, best_time/5, best_time/best_epoch))
     
 
-train_gcn()
+train_sgc()
 
 
