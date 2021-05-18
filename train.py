@@ -134,10 +134,10 @@ def train_gcn():
     dropout = [0.1, 0.2, 0.3, 0.4, 0.5 ,0.6, 0.7, 0.8, 0.9]
 
     for args.lr, args.weight_decay, args.dropout in itertools.product(lr, weight_decay, dropout):
-        result = np.zeros(5)
+        result = np.zeros(10)
         t_total = time.time()
         num_epoch = 0
-        for idx in range(5):
+        for idx in range(10):
             #idx_train, idx_val, idx_test = rand_train_test_idx(labels)
             idx_train, idx_val, idx_test = random_disassortative_splits(labels, num_class)
             #rank = OneVsRestClassifier(LinearRegression()).fit(features[idx_train], labels[idx_train]).predict(features)
