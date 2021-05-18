@@ -51,8 +51,8 @@ class GCN(nn.Module):
     
 
     def forward(self, x, adj, adj_high):
-        #fea = F.relu(self.gcns[0](x, adj, adj_high)) #
-        fea = (self.gcns[0](x, adj, adj_high))
+        fea = F.relu(self.gcns[0](x, adj, adj_high)) #
+        #fea = (self.gcns[0](x, adj, adj_high))
         fea = F.dropout(fea, self.dropout, training=self.training)
         fea = self.gcns[-1](fea, adj, adj_high)
         return fea
