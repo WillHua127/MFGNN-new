@@ -415,7 +415,7 @@ def full_load_data(dataset_name, sub_dataname=''):
     # val_mask = th.BoolTensor(val_mask)
     # test_mask = th.BoolTensor(test_mask)
 
-    adj = normalize_adj(adj+sp.eye(adj.shape[0]))
+    adj = normalize(adj+sp.eye(adj.shape[0]))
     adj_high = sp.eye(adj.shape[0]) - adj
     adj = sparse_mx_to_torch_sparse_tensor(adj)
     adj_high = sparse_mx_to_torch_sparse_tensor(adj_high)
