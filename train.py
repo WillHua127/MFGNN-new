@@ -111,6 +111,17 @@ def test_mfgcn(model, idx_train, idx_val, idx_test):
           #"loss= {:.4f}".format(loss_test.item()),
          # "accuracy= {:.4f}".format(acc_test.item()))
     return acc_test
+  
+def test_sgcnh(model, idx_train, idx_val, idx_test):
+    model.eval()
+    output = model(features, edge_index)
+    pred = torch.argmax(F.softmax(output,dim=1) , dim=1)
+    pred = F.one_hot(pred).float()
+    output = F.log_softmax(output, dim=1)
+    loss_test = F.nll_loss(output[idx_test], labels[idx_test])
+    acc_test = accuracy(output[idx_test], labels[idx_test])
+    return acc_test
+    
 
 
 # Train model
