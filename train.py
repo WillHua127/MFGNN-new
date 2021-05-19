@@ -12,7 +12,7 @@ import matplotlib
 import itertools
 
 from utils import load_data, accuracy, full_load_data, data_split, reconstruct, random_disassortative_splits, rand_train_test_idx, mfsgc_precompute
-from models import GCN,SGC
+from models import GCN,SGC,SGCNonh
 
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.linear_model import LinearRegression
@@ -56,11 +56,12 @@ if args.cuda:
     torch.cuda.manual_seed(args.seed)
     
 
-adj, adj_high, features, labels = full_load_data(args.dataset, args.sub_dataname)
+adj, adj_high, features, labels, edge_index = full_load_data(args.dataset, args.sub_dataname)
 if args.cuda:
     features = features.cuda()
     labels = labels.cuda()
     adj = adj.cuda()
+    edge_index.cuda()
     if args.model != 'mfsgc':
       adj_high = adj_high.cuda()
     
