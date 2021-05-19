@@ -33,7 +33,7 @@ dataset_drive_url = {
 def mfsgc_precompute(features, adj, degree):
     features_low = features
     for i in range(degree):
-        features_low = torch.sparse.mm(adj, features_low.to_dense()).to_sparse()
+        features_low = torch.sparse.mm(adj, features_low)
     features_high = features - features_low
     return features_low, features_high 
 
