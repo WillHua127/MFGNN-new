@@ -61,7 +61,7 @@ if args.cuda:
     features = features.cuda()
     labels = labels.cuda()
     adj = adj.cuda()
-    edge_index.cuda()
+    edge_index = edge_index.cuda()
     if args.model != 'mfsgc':
       adj_high = adj_high.cuda()
     
