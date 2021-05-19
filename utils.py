@@ -13,7 +13,7 @@ import re
 #import torch as th
 from sklearn.model_selection import ShuffleSplit
 from numpy.linalg import matrix_power
-#import dgl
+import dgl
 import scipy.io
 import csv
 from os import path
@@ -79,6 +79,86 @@ def even_quantile_labels(vals, nclasses, verbose=True):
         for class_idx, interval in enumerate(interval_lst):
             print(f'Class {class_idx}: [{interval[0]}, {interval[1]})]')
     return label
+
+
+def load_graph_data(dataset_name):
+    if dataset_name in {'cora', 'citeseer', 'pubmed'}:
+        adj, features, labels = load_citation(dataset_name)
+        labels = np.argmax(labels, axis=-1)
+        features = features.todense()
+    else:
+        graph_adjacency_list_file_path = os.path.join('new_data', dataset_name, 'out1_graph_edges.txt')
+        graph_node_features_and_labels_file_path = os.path.join('new_data', dataset_name,
+                                                                f'out1_node_feature_label.txt')
+
+        G = nx.DiGraph()
+        graph_node_features_dict = {}
+        graph_labels_dict = {}
+
+        if dataset_name == 'film':
+            with open(graph_node_features_and_labels_file_path) as graph_node_features_and_labels_file:
+                graph_node_features_and_labels_file.readline()
+                for line in graph_node_features_and_labels_file:
+                    line = line.rstrip().split('\t')
+                    assert (len(line) == 3)
+                    assert (int(line[0]) not in graph_node_features_dict and int(line[0]) not in graph_labels_dict)
+                    feature_blank = np.zeros(932, dtype=np.uint8)
+                    feature_blank[np.array(line[1].split(','), dtype=np.uint16)] = 1
+                    graph_node_features_dict[int(line[0])] = feature_blank
+                    graph_labels_dict[int(line[0])] = int(line[2])
+        else:
+            with open(graph_node_features_and_labels_file_path) as graph_node_features_and_labels_file:
+                graph_node_features_and_labels_file.readline()
+                for line in graph_node_features_and_labels_file:
+                    line = line.rstrip().split('\t')
+                    assert (len(line) == 3)
+                    assert (int(line[0]) not in graph_node_features_dict and int(line[0]) not in graph_labels_dict)
+                    graph_node_features_dict[int(line[0])] = np.array(line[1].split(','), dtype=np.uint8)
+                    graph_labels_dict[int(line[0])] = int(line[2])
+
+        with open(graph_adjacency_list_file_path) as graph_adjacency_list_file:
+            graph_adjacency_list_file.readline()
+            for line in graph_adjacency_list_file:
+                line = line.rstrip().split('\t')
+                assert (len(line) == 2)
+                if int(line[0]) not in G:
+                    G.add_node(int(line[0]), features=graph_node_features_dict[int(line[0])],
+                               label=graph_labels_dict[int(line[0])])
+                if int(line[1]) not in G:
+                    G.add_node(int(line[1]), features=graph_node_features_dict[int(line[1])],
+                               label=graph_labels_dict[int(line[1])])
+                G.add_edge(int(line[0]), int(line[1]))
+
+        adj = nx.adjacency_matrix(G, sorted(G.nodes()))
+        #print(type(adj))
+        features = np.array(
+            [features for _, features in sorted(G.nodes(data='features'), key=lambda x: x[0])])
+        labels = np.array(
+            [label for _, label in sorted(G.nodes(data='label'), key=lambda x: x[0])])
+    
+    g = dgl.DGLGraph(adj+sp.eye(adj.shape[0]))
+    
+    features = preprocess_features(features)
+    num_labels = len(np.unique(labels))
+    #onehot_labels = np.eye(num_labels)[labels]
+    assert (np.array_equal(np.unique(labels), np.arange(len(np.unique(labels)))))
+    #print(features.shape)
+
+    features = torch.FloatTensor(features)
+    labels = torch.LongTensor(labels)
+
+    # Adapted from https://docs.dgl.ai/tutorials/models/1_gnn/1_gcn.html
+    g.ndata['features'] = features
+    g.ndata['labels'] = labels
+    
+    degs = g.in_degrees().float()
+    norm = torch.pow(degs, -1)
+    norm[torch.isinf(norm)] = 0
+    if torch.cuda.is_available():
+        norm.cuda()
+    g.ndata['norm'] = norm.unsqueeze(1)
+
+    return g, num_labels 
 
 
 def load_data(dataset_str):
