@@ -261,7 +261,7 @@ def train_sgc():
                 idx_test = idx_test.cuda()
                 model.cuda()
 
-            optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+            optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
             vlss_mn = np.inf
             vacc_mx = 0.0
             vacc_early_model = None
