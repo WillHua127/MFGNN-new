@@ -2,8 +2,21 @@ import torch.nn as nn
 import torch.nn.functional as F
 from layers import GraphConvolution
 import torch
+from torch_geometric.nn import SGConv
 
+class SGCNonh(nn.Module):
+    def __init__(self, in_channels, out_channels, hops):
+        """ takes 'hops' power of the normalized adjacency"""
+        super(SGCNonh, self).__init__()
+        self.conv = SGConv(in_channels, out_channels, hops, cached=True) 
 
+    def reset_parameters(self):
+        self.conv.reset_parameters()
+
+    def forward(self, x, edge_index):
+        x = self.conv(x, edge_index)
+        return x
+    
 class SGC(nn.Module):
     def __init__(self, nfeat, nclass):
         super(SGC, self).__init__()
