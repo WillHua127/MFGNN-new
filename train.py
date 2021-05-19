@@ -56,16 +56,16 @@ if args.cuda:
     torch.cuda.manual_seed(args.seed)
     
 
-adj, adj_high, features, labels, edge_index = full_load_data(args.dataset, args.sub_dataname)
+adj, adj_high, features, labels = full_load_data(args.dataset, args.sub_dataname)
 if args.cuda:
     features = features.cuda()
     labels = labels.cuda()
     adj = adj.cuda()
-    edge_index = edge_index.cuda()
+    #edge_index = edge_index.cuda()
     if args.model != 'mfsgc':
       adj_high = adj_high.cuda()
     
-if args.model == 'mfsgc':
+if args.model != 'mfgcn':
   features_low, features_high = mfsgc_precompute(features, adj, args.degree)
   del adj, adj_high
   if args.cuda:
@@ -114,7 +114,7 @@ def test_mfgcn(model, idx_train, idx_val, idx_test):
   
 def test_sgcnh(model, idx_train, idx_val, idx_test):
     model.eval()
-    output = model(features, edge_index)
+    output = model(features_low)
     pred = torch.argmax(F.softmax(output,dim=1) , dim=1)
     pred = F.one_hot(pred).float()
     output = F.log_softmax(output, dim=1)
@@ -388,7 +388,7 @@ def train_sgcnh():
                 t = time.time()
                 model.train()
                 optimizer.zero_grad()
-                output = model(features, edge_index)
+                output = model(features_low)
                 #print(F.softmax(output,dim=1))
                 output = F.log_softmax(output, dim=1)
                 #print(output)
@@ -401,7 +401,7 @@ def train_sgcnh():
                     # Evaluate validation set performance separately,
                     # deactivates dropout during validation run.
                     model.eval()
-                    output = model(features, edge_index)
+                    output = model(features_low)
                     output = F.log_softmax(output, dim=1)
 
                 val_loss = F.nll_loss(output[idx_val], labels[idx_val])
