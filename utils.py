@@ -155,7 +155,7 @@ def load_graph_data(dataset_name):
     norm = torch.pow(degs, -1)
     norm[torch.isinf(norm)] = 0
     if torch.cuda.is_available():
-        norm.cuda()
+        norm = norm.cuda()
     g.ndata['norm'] = norm.unsqueeze(1)
 
     return g, num_labels 
