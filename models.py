@@ -1,9 +1,37 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from layers import GraphConvolution
+from layers import GraphConvolution, SAGEConv
 import torch
 #from torch_geometric.nn import SGConv
 
+class SAGE(nn.Module):
+    def __init__(self,
+                 in_feats,
+                 n_hidden,
+                 n_classes,
+                 n_layers,
+                 dropout):
+        super().__init__()
+        self.n_layers = n_layers
+        self.n_hidden = n_hidden
+        self.n_classes = n_classes
+        self.layers = nn.ModuleList()
+        self.layers.append(SAGEConv(in_feats, n_hidden))
+        for i in range(1, n_layers - 1):
+            self.layers.append(SAGEConv(n_hidden, n_hidden))
+        self.layers.append(SAGEConv(n_hidden, n_classes))
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, graph, inputs):
+        h = self.dropout(inputs)
+        for l, layer in enumerate(self.layers):
+            h = layer(graph, h)
+            if l != len(self.layers) - 1:
+                h = F.relu(h)
+                h = self.dropout(h)
+        return h
+
+    
 class SGCNonh(nn.Module):
     def __init__(self, in_channels, out_channels, hops):
         """ takes 'hops' power of the normalized adjacency"""
