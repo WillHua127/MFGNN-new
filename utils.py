@@ -83,7 +83,7 @@ def even_quantile_labels(vals, nclasses, verbose=True):
 
 def load_graph_data(dataset_name):
     if dataset_name in {'cora', 'citeseer', 'pubmed'}:
-        adj, features, labels = load_citation(dataset_name)
+        adj, features, labels = load_data(dataset_name)
         labels = np.argmax(labels, axis=-1)
         features = features.todense()
     else:
