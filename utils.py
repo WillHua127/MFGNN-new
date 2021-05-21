@@ -86,6 +86,10 @@ def load_graph_data(dataset_name):
         adj, features, labels = load_data(dataset_name)
         labels = np.argmax(labels, axis=-1)
         features = features.todense()
+    elif dataset_name in {'deezer'}:
+        adj, features, labels = load_deezer_dataset()
+    elif dataset_name in {'yelpchi'}:
+        adj, features, labels = load_yelpchi_dataset()
     else:
         graph_adjacency_list_file_path = os.path.join('new_data', dataset_name, 'out1_graph_edges.txt')
         graph_node_features_and_labels_file_path = os.path.join('new_data', dataset_name,
@@ -135,6 +139,8 @@ def load_graph_data(dataset_name):
             [features for _, features in sorted(G.nodes(data='features'), key=lambda x: x[0])])
         labels = np.array(
             [label for _, label in sorted(G.nodes(data='label'), key=lambda x: x[0])])
+        
+    adj.setdiag(0)
     
     g = dgl.DGLGraph(adj+sp.eye(adj.shape[0]))
     
@@ -143,8 +149,15 @@ def load_graph_data(dataset_name):
     #onehot_labels = np.eye(num_labels)[labels]
     assert (np.array_equal(np.unique(labels), np.arange(len(np.unique(labels)))))
     #print(features.shape)
+    
+    if dataset_name in {'deezer', 'yelpchi'}:
+        #features = normalize_sp(features)
+        features = sparse_mx_to_torch_sparse_tensor(features).to_dense()
+    else:
+        #features = preprocess_features(features)
+        features = torch.FloatTensor(features)
 
-    features = torch.FloatTensor(features)
+    #features = torch.FloatTensor(features)
     labels = torch.LongTensor(labels)
 
     # Adapted from https://docs.dgl.ai/tutorials/models/1_gnn/1_gcn.html
