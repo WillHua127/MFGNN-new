@@ -67,6 +67,8 @@ class SAGEConv(nn.Module):
     def forward(self, graph, feat):
         with graph.local_scope():
             feat_src = feat_dst = self.feat_drop(feat)
+            if graph.is_block:
+                    feat_dst = feat_src[:graph.number_of_dst_nodes()]
 
             h_self = feat_dst
 
@@ -83,7 +85,7 @@ class SAGEConv(nn.Module):
             from_neigh = self.w_neigh(h_neigh)
             low = F.relu(self.w_self(h_self)+self.w_neigh(h_neigh))
             high = F.relu(self.w_self(h_self)-self.w_neigh(h_neigh))
-            identity = F.relu(self.w_identity(feat_src))
+            identity = F.relu(self.w_identity(feat_dst))
             att_low, att_high, att_mlp = self.attention(low, high, identity)
 
             rst = 3*(att_low*low + att_high*high + att_mlp*identity)
