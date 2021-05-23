@@ -37,43 +37,21 @@ class SAGEBC(nn.Module):
     
     
     def inference(self, g, x, device, batch_size, num_workers):
-        """
-        Inference with the GraphSAGE model on full neighbors (i.e. without neighbor sampling).
-        g : the entire graph.
-        x : the input of entire node set.
-        The inference code is written in a fashion that it could handle any number of nodes and
-        layers.
-        """
-        # During inference with sampling, multi-layer blocks are very inefficient because
-        # lots of computations in the first few layers are repeated.
-        # Therefore, we compute the representation of all nodes layer by layer.  The nodes
-        # on each layer are of course splitted in batches.
-        # TODO: can we standardize this?
+        nodes = torch.arange(g.number_of_nodes())
         for l, layer in enumerate(self.layers):
-            y = torch.zeros(g.num_nodes(), self.n_hidden if l != len(self.layers) - 1 else self.n_classes)
-
-            sampler = dgl.dataloading.MultiLayerFullNeighborSampler(1)
-            dataloader = dgl.dataloading.NodeDataLoader(
-                g,
-                torch.arange(g.num_nodes()).to(g.device),
-                sampler,
-                batch_size=batch_size,
-                shuffle=True,
-                drop_last=False,
-                num_workers=num_workers)
-
-            for input_nodes, output_nodes, blocks in tqdm.tqdm(dataloader):
-                block = blocks[0]
-
-                block = block.int().to(device)
+            y = torch.zeros(g.number_of_nodes(), self.n_hidden if l != len(self.layers) - 1 else self.n_classes)
+            for start in tqdm.trange(0, len(nodes), batch_size):
+                end = start + batch_size
+                batch_nodes = nodes[start:end]
+                block = dgl.to_block(dgl.in_subgraph(g, batch_nodes), batch_nodes)
+                input_nodes = block.srcdata[dgl.NID]
                 h = x[input_nodes].to(device)
+                #h_dst = h[:block.number_of_dst_nodes()]
                 h = layer(block, h)
                 if l != len(self.layers) - 1:
                     h = F.relu(h)
                     h = self.dropout(h)
-
-                y[output_nodes] = h.cpu()
-
+                y[start:end] = h.cpu()
             x = y
         return y
     
