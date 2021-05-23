@@ -30,6 +30,21 @@ dataset_drive_url = {
 }
 
 
+class NeighborSampler(object):
+    def __init__(self, g, fanouts):
+        self.g = g
+        self.fanouts = fanouts
+
+    def sample_blocks(self, seeds):
+        seeds = th.LongTensor(np.asarray(seeds))
+        blocks = []
+        for fanout in self.fanouts: 
+            frontier = dgl.sampling.sample_neighbors(self.g, seeds, fanout, replace=True)
+            block = dgl.to_block(frontier, seeds)
+            seeds = block.srcdata[dgl.NID]
+            blocks.insert(0, block)
+        return blocks
+
 def mfsgc_precompute(features, adj, degree):
     features_low = features
     for i in range(degree):
