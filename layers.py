@@ -75,7 +75,7 @@ class SAGEConv(nn.Module):
             # Handle the case of graphs without edges
             if graph.number_of_edges() == 0: graph.dstdata['neigh'] = torch.zeros(feat_dst.shape[0], self._in_src_feats).to(feat_dst)
 
-            graph.srcdata['h'] = feat_src * graph.ndata['norm']
+            graph.srcdata['h'] = feat_src# * graph.ndata['norm']
             graph.update_all(fn.copy_src('h', 'm'), self._mean_reducer)
             #graph.update_all(fn.copy_src('h', 'm_high'), self._mean_high_reducer)
             h_neigh = graph.dstdata['neigh']
