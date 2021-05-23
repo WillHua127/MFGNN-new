@@ -223,6 +223,7 @@ def train_sage():
                     model.eval()
                     output = model.inference(g, features, device, args.batch_size, args.num_workers)
                     output = F.log_softmax(output, dim=1)
+                    output = output.to(device)
 
                 val_loss = F.nll_loss(output[idx_val], labels[idx_val])
                 val_acc = accuracy(output[idx_val], labels[idx_val])
