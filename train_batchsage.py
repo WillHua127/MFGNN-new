@@ -11,8 +11,9 @@ import torch.optim as optim
 import matplotlib
 import itertools
 import dgl
+from torch.utils.data import DataLoader
 
-from utils import load_data, accuracy, load_graph_data, data_split, reconstruct, random_disassortative_splits, rand_train_test_idx
+from utils import load_data, accuracy, load_graph_data, data_split, reconstruct, random_disassortative_splits, rand_train_test_idx,NeighborSampler
 from models import SAGEBC
 
 from sklearn.multiclass import OneVsRestClassifier
@@ -140,14 +141,23 @@ def train_sage():
             #idx_train, idx_val, idx_test = rand_train_test_idx(labels)
             idx_train, idx_val, idx_test = random_disassortative_splits(labels, num_class)
             
-            sampler = dgl.dataloading.MultiLayerNeighborSampler([int(fanout) for fanout in args.fan_out.split(',')])
+            #sampler = dgl.dataloading.MultiLayerNeighborSampler([int(fanout) for fanout in args.fan_out.split(',')])
+            sampler = NeighborSampler(g, [int(fanout) for fanout in args.fan_out.split(',')])
             
-            dataloader = dgl.dataloading.NodeDataLoader(
-                g,
-                idx_train,
-                sampler,
+            #dataloader = dgl.dataloading.NodeDataLoader(
+            #    g,
+            #    idx_train,
+            #    sampler,
                 #device=torch.device('cpu'),
+            #    batch_size=args.batch_size,
+            #    shuffle=True,
+            #    drop_last=False,
+            #    num_workers=args.num_workers)
+            
+            dataloader = DataLoader(
+                dataset=idx_train,
                 batch_size=args.batch_size,
+                collate_fn=sampler.sample_blocks,
                 shuffle=True,
                 drop_last=False,
                 num_workers=args.num_workers)
@@ -179,8 +189,11 @@ def train_sage():
                 num_epoch = num_epoch+1
                 t = time.time()
                 
-                for step, (input_nodes, seeds, blocks) in enumerate(dataloader):
+                #for step, (input_nodes, seeds, blocks) in enumerate(dataloader):
+                for step, blocks in enumerate(dataloader):
                     # Load the input features as well as output labels
+                    input_nodes = blocks[0].srcdata[dgl.NID]
+                    seeds = blocks[-1].dstdata[dgl.NID]
                     batch_inputs, batch_labels = load_subtensor(features, labels, seeds, input_nodes, device)
                     blocks = [block.int().to(device) for block in blocks]
                     
