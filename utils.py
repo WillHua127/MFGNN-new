@@ -157,7 +157,8 @@ def load_graph_data(dataset_name):
         
     adj.setdiag(0)
     
-    g = dgl.DGLGraph(adj+sp.eye(adj.shape[0]))
+    #g = dgl.DGLGraph(adj+sp.eye(adj.shape[0]))
+    g = dgl.graph(adj+sp.eye(adj.shape[0]))
     
     features = preprocess_features(features)
     num_labels = len(np.unique(labels))
