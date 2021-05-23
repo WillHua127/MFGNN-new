@@ -67,8 +67,8 @@ class SAGEConv(nn.Module):
     def forward(self, graph, feat):
         with graph.local_scope():
             feat_src = feat_dst = self.feat_drop(feat)
-            if graph.is_block:
-                    feat_dst = feat_src[:graph.number_of_dst_nodes()]
+            #if graph.is_block:
+            feat_dst = feat_src[:graph.number_of_dst_nodes()]
 
             h_self = feat_dst
 
