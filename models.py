@@ -53,7 +53,7 @@ class SAGEBC(nn.Module):
                 if l != len(self.layers) - 1:
                     h = F.relu(h)
                     h = self.dropout(h)
-                y[start:end] = h.cpu()
+                y[start:end] = h#.cpu()
             x = y
         return y
     
