@@ -29,7 +29,7 @@ parser.add_argument('--fastmode', action='store_true', default=False,
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
 parser.add_argument('--epochs', type=int, default=5000,
                     help='Number of epochs to train.')
-parser.add_argument('--num-hidden', type=int, default=64)
+parser.add_argument('--num-hidden', type=int, default=8)
 parser.add_argument('--num-layers', type=int, default=2)
 parser.add_argument('--lr', type=float, default=0.05,
                     help='Initial learning rate.')
@@ -43,9 +43,9 @@ parser.add_argument('--dataset', type=str,
                     help='Dataset name.', default = 'film')
 parser.add_argument('--sub_dataname', type=str,
                     help='subdata name.', default = 'DE')
-parser.add_argument('--num-workers', type=int, default=4,
+parser.add_argument('--num-workers', type=int, default=0,
                     help="Number of sampling processes. Use 0 for no extra process.")
-parser.add_argument('--batch-size', type=int, default=1000)
+parser.add_argument('--batch-size', type=int, default=500)
 parser.add_argument('--log-every', type=int, default=50)
 parser.add_argument('--eval-every', type=int, default=10)
 parser.add_argument('--fan-out', type=str, default='10,25')
