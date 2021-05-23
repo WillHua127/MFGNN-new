@@ -195,7 +195,7 @@ def train_sage():
                     input_nodes = blocks[0].srcdata[dgl.NID]
                     seeds = blocks[-1].dstdata[dgl.NID]
                     batch_inputs, batch_labels = load_subtensor(features, labels, seeds, input_nodes, device)
-                    blocks = [block.int().to(device) for block in blocks]
+                    #blocks = [block.int().to(device) for block in blocks]
                     
                     model.train()
                     optimizer.zero_grad()
