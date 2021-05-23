@@ -36,7 +36,7 @@ class NeighborSampler(object):
         self.fanouts = fanouts
 
     def sample_blocks(self, seeds):
-        seeds = torch.from_numpy(np.asarray(seeds))
+        seeds = torch.LongTensor((seeds))
         blocks = []
         for fanout in self.fanouts: 
             frontier = dgl.sampling.sample_neighbors(self.g, seeds, fanout, replace=True)
