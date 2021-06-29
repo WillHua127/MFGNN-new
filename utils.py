@@ -10,7 +10,7 @@ from networkx.readwrite import json_graph
 import pdb
 import os
 import re
-#import torch as th
+import torch as th
 from sklearn.model_selection import ShuffleSplit
 from numpy.linalg import matrix_power
 import dgl
@@ -22,35 +22,7 @@ from google_drive_downloader import GoogleDriveDownloader as gdd
 
 sys.setrecursionlimit(99999)
 
-
-dataset_drive_url = {
-    'snap-patents' : '1ldh23TSY1PwXia6dU0MYcpyEgX-w3Hia', 
-    'pokec' : '1dNs5E7BrWJbgcHeQ_zuy5Ozp2tRCWG0y', 
-    'yelp-chi': '1fAXtTVQS4CfEk4asqrFw9EPmlUPGbGtJ', 
-}
-
-
-class NeighborSampler(object):
-    def __init__(self, g, fanouts):
-        self.g = g
-        self.fanouts = fanouts
-
-    def sample_blocks(self, seeds):
-        seeds = torch.LongTensor((seeds))
-        blocks = []
-        for fanout in self.fanouts: 
-            frontier = dgl.sampling.sample_neighbors(self.g, seeds, fanout, replace=True)
-            block = dgl.to_block(frontier, seeds)
-            seeds = block.srcdata[dgl.NID]
-            blocks.insert(0, block)
-        return blocks
-
-def mfsgc_precompute(features, adj, degree):
-    features_low = features
-    for i in range(degree):
-        features_low = torch.sparse.mm(adj, features_low)
-    features_high = features - features_low
-    return features_low, features_high 
+    
 
 def encode_onehot(labels):
     classes = set(labels)
@@ -63,11 +35,135 @@ def encode_onehot(labels):
 def preprocess_features(features):
     """Row-normalize feature matrix and convert to tuple representation"""
     rowsum = np.array(features.sum(1))
-    r_inv = np.power(rowsum, -0.5).flatten()
+    r_inv = np.power(rowsum, -1).flatten()
     r_inv[np.isinf(r_inv)] = 0.
     r_mat_inv = sp.diags(r_inv)
     features = r_mat_inv.dot(features)
     return features
+
+def rand_train_test_idx(label, train_prop=.5, valid_prop=.25, ignore_negative=True):
+    """ randomly splits label into train/valid/test splits """
+    if ignore_negative:
+        labeled_nodes = torch.where(label != -1)[0]
+    else:
+        labeled_nodes = label
+
+    n = labeled_nodes.shape[0]
+    train_num = int(n * train_prop)
+    valid_num = int(n * valid_prop)
+
+    perm = torch.as_tensor(np.random.permutation(n))
+
+    train_indices = perm[:train_num]
+    val_indices = perm[train_num:train_num + valid_num]
+    test_indices = perm[train_num + valid_num:]
+
+    if not ignore_negative:
+        return train_indices, val_indices, test_indices
+
+    train_idx = labeled_nodes[train_indices]
+    valid_idx = labeled_nodes[val_indices]
+    test_idx = labeled_nodes[test_indices]
+
+    return train_idx, valid_idx, test_idx
+
+def random_disassortative_splits(labels, num_classes):
+    # * 0.6 labels for training
+    # * 0.2 labels for validation
+    # * 0.2 labels for testing
+    labels, num_classes = labels, num_classes
+    indices = []
+    for i in range(num_classes):
+        index = torch.nonzero((labels == i)).view(-1)
+        index = index[torch.randperm(index.size(0))]
+        indices.append(index)
+    percls_trn = int(torch.round(0.6*torch.div(labels.size()[0], num_classes)))
+    val_lb = int(round(0.2*labels.size()[0]))
+    # train_index = torch.cat([i[:int(len(i)*0.6)] for i in indices], dim=0)
+    train_index = torch.cat([i[:percls_trn] for i in indices], dim=0)
+
+    # val_index = torch.cat([i[int(len(i)*0.6):int(len(i)*0.8)] for i in indices], dim=0)
+    # test_index = torch.cat([i[int(len(i)*0.8):] for i in indices], dim=0)
+    rest_index = torch.cat([i[percls_trn:] for i in indices], dim=0)
+    rest_index = rest_index[torch.randperm(rest_index.size(0))]
+    val_index = rest_index[:val_lb]
+    test_index = rest_index[val_lb:]
+    
+    
+    return train_index, val_index, test_index
+
+    
+def data_split(idx, dataset_name):
+    splits_file_path = 'splits/'+dataset_name+'_split_0.6_0.2_'+str(idx)+'.npz'
+    with np.load(splits_file_path) as splits_file:
+        train_mask = splits_file['train_mask']
+        val_mask = splits_file['val_mask']
+        test_mask = splits_file['test_mask']
+    train_mask = th.BoolTensor(train_mask)
+    val_mask = th.BoolTensor(val_mask)
+    test_mask = th.BoolTensor(test_mask)
+    return train_mask, val_mask, test_mask
+
+def normalize_sp(spmx):
+    rowsum = sp.csr_matrix(spmx.sum(axis=1))
+    r_inv= sp.csr_matrix.power(rowsum, -1)
+    #r_inv[np.isinf(r_inv)] = 0.
+    r_inv = r_inv.transpose()
+    scaling_matrix = sp.diags(r_inv.toarray()[0])
+    spmx = scaling_matrix.dot(spmx)
+    return spmx
+
+def normalize(mx):
+    """Row-normalize sparse matrix"""
+    rowsum = np.array(mx.sum(1))
+    r_inv = np.power(rowsum, -1).flatten()
+    r_inv[np.isinf(r_inv)] = 0.
+    r_mat_inv = sp.diags(r_inv)
+    mx = r_mat_inv.dot(mx)
+    return mx
+
+
+def accuracy(output, labels):
+    preds = output.max(1)[1].type_as(labels)
+    correct = preds.eq(labels).double()
+    correct = correct.sum()
+    return correct / len(labels)
+
+
+def sparse_mx_to_torch_sparse_tensor(sparse_mx):
+    """Convert a scipy sparse matrix to a torch sparse tensor."""
+    sparse_mx = sparse_mx.tocoo().astype(np.float32)
+    indices = torch.from_numpy(
+        np.vstack((sparse_mx.row, sparse_mx.col)).astype(np.int64))
+    values = torch.from_numpy(sparse_mx.data)
+    shape = torch.Size(sparse_mx.shape)
+    return torch.sparse.FloatTensor(indices, values, shape)
+
+def parse_index_file(filename):
+    """Parse index file."""
+    index = []
+    for line in open(filename):
+        index.append(int(line.strip()))
+    return index
+
+def sys_normalized_adjacency(adj):
+   adj = sp.coo_matrix(adj)
+   adj = adj + sp.eye(adj.shape[0])
+   row_sum = np.array(adj.sum(1))
+   row_sum=(row_sum==0)*1+row_sum
+   d_inv_sqrt = np.power(row_sum, -0.5).flatten()
+   d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
+   d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
+   return d_mat_inv_sqrt.dot(adj).dot(d_mat_inv_sqrt).tocoo()
+
+def normalize_adj(adj):
+    """Symmetrically normalize adjacency matrix."""
+    adj = sp.coo_matrix(adj)
+    rowsum = np.array(adj.sum(1))
+    d_inv_sqrt = np.power(rowsum, -0.5).flatten()
+    d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
+    d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
+    return adj.dot(d_mat_inv_sqrt).transpose().dot(d_mat_inv_sqrt).tocoo()
 
 
 def even_quantile_labels(vals, nclasses, verbose=True):
@@ -103,8 +199,10 @@ def load_graph_data(dataset_name):
         features = features.todense()
     elif dataset_name in {'deezer'}:
         adj, features, labels = load_deezer_dataset()
+        
     elif dataset_name in {'yelpchi'}:
         adj, features, labels = load_yelpchi_dataset()
+        
     else:
         graph_adjacency_list_file_path = os.path.join('new_data', dataset_name, 'out1_graph_edges.txt')
         graph_node_features_and_labels_file_path = os.path.join('new_data', dataset_name,
@@ -154,25 +252,25 @@ def load_graph_data(dataset_name):
             [features for _, features in sorted(G.nodes(data='features'), key=lambda x: x[0])])
         labels = np.array(
             [label for _, label in sorted(G.nodes(data='label'), key=lambda x: x[0])])
-        
-    adj.setdiag(0)
     
-    #g = dgl.DGLGraph(adj+sp.eye(adj.shape[0]))
-    g = dgl.graph(adj+sp.eye(adj.shape[0]))
+    adj.setdiag(1)
+    g = dgl.DGLGraph(adj)
     
     features = preprocess_features(features)
+    features = np.hstack([features, np.ones([features.shape[0],1])])
+    
+    
     num_labels = len(np.unique(labels))
     #onehot_labels = np.eye(num_labels)[labels]
     assert (np.array_equal(np.unique(labels), np.arange(len(np.unique(labels)))))
     #print(features.shape)
-    
     if dataset_name in {'deezer', 'yelpchi'}:
-        #features = normalize_sp(features)
+        #eatures = normalize_sp(features)
         features = sparse_mx_to_torch_sparse_tensor(features).to_dense()
     else:
         #features = preprocess_features(features)
-        features = torch.FloatTensor(features)
-
+        features = th.FloatTensor(features)
+        
     #features = torch.FloatTensor(features)
     labels = torch.LongTensor(labels)
 
@@ -184,9 +282,9 @@ def load_graph_data(dataset_name):
     norm = torch.pow(degs, -1)
     norm[torch.isinf(norm)] = 0
     if torch.cuda.is_available():
-        norm = norm.cuda()
+        norm.cuda()
     g.ndata['norm'] = norm.unsqueeze(1)
-
+    
     return g, num_labels 
 
 
@@ -370,26 +468,24 @@ def load_yelpchi_dataset():
 
 
 def load_pokec_mat():
+    """ requires pokec.mat """
     if not path.exists(f'./data/pokec.mat'):
         gdd.download_file_from_google_drive(
             file_id= dataset_drive_url['pokec'], \
             dest_path=f'./data/pokec.mat', showsize=True) 
 
     fulldata = scipy.io.loadmat(f'./data/pokec.mat')
+
+    fulldata = scipy.io.loadmat(f'./data/snap_patents.mat')
     edge_index = fulldata['edge_index']
-    features = fulldata['node_feat'].astype(float)#.transpose()
-    
-    #print(features.shape)
+    features = fulldata['node_feat']
     n = features.shape[0]
     (src, tar) = edge_index
     A = sp.csr_matrix((np.ones(len(src)), 
                                  (np.array(src), np.array(tar))),
                                 shape=(n,n))
-    #print(A.shape)
-    
     label = fulldata['label'].flatten()
-    
-    #print(label.shape)
+
     return A, features, label
 
 def load_snap_mat(nclass=5):
@@ -400,7 +496,7 @@ def load_snap_mat(nclass=5):
 
     fulldata = scipy.io.loadmat(f'./data/snap_patents.mat')
     edge_index = fulldata['edge_index']
-    features = fulldata['node_feat'].astype(float)
+    features = fulldata['node_feat']
     n = features.shape[0]
     (src, tar) = edge_index
     A = sp.csr_matrix((np.ones(len(src)), 
@@ -439,7 +535,7 @@ def full_load_data(dataset_name, sub_dataname=''):
         
     elif dataset_name in {'yelpchi'}:
         adj, features, labels = load_yelpchi_dataset()
-        
+    
     elif dataset_name in {'snap'}:
         adj, features, labels = load_snap_mat()
         
@@ -501,184 +597,50 @@ def full_load_data(dataset_name, sub_dataname=''):
             [label for _, label in sorted(G.nodes(data='label'), key=lambda x: x[0])])
         #print(len(G.edges))
      
-    print(np.arange(len(np.unique(labels))))
-    print(np.unique(labels))
-    if dataset_name in {'deezer', 'yelpchi', 'snap'}:
+
+    adj.setdiag(1)
+    edge_dict = {}
+    for i in range(adj.shape[0]):
+        edge_dict[i]=sp.find(adj[i])[1]
+    #print(np.arange(len(np.unique(labels))))
+    
+    
+    if dataset_name in {'deezer', 'yelpchi', 'snap', 'pokec'}:
         features = normalize_sp(features)
-        features = sparse_mx_to_torch_sparse_tensor(features)
-    elif dataset_name in {'pokec'}:
-        features = normalize_sp(features, take_trans=False)
         features = sparse_mx_to_torch_sparse_tensor(features)
     else:
         features = preprocess_features(features)
-        features = torch.FloatTensor(features)
-        
-    adj.setdiag(0)
+        features = np.hstack([features, np.ones([features.shape[0],1])])
+        #features = pre_aggregate(features, edge_dict)
+        features = th.FloatTensor(features)
     
     num_features = features.shape[1]
     num_labels = len(np.unique(labels))
     assert (np.array_equal(np.unique(labels), np.arange(len(np.unique(labels)))))
 
-    labels = torch.LongTensor(labels)
+    labels = th.LongTensor(labels)
     # train_mask = th.BoolTensor(train_mask)
     # val_mask = th.BoolTensor(val_mask)
     # test_mask = th.BoolTensor(test_mask)
 
-    adj = normalize(adj+sp.eye(adj.shape[0]))
-    #edge_index = torch.tensor(adj.nonzero(), dtype=torch.long)
-    adj_high = sp.eye(adj.shape[0]) - adj
-    adj = sparse_mx_to_torch_sparse_tensor(adj)
-    adj_high = sparse_mx_to_torch_sparse_tensor(adj_high)
-    #g_high = g
+    adj = normalize_adj(adj+sp.eye(adj.shape[0]))
+    edge_index = torch.tensor(adj.nonzero(), dtype=torch.long)
+    #print(isinstance(edge_index, torch.Tensor))
     
-    return adj, adj_high, features, labels#, edge_index#, train_mask, val_mask, test_mask
-
-def reconstruct(g, rank, num_classes):
-    nodelist = np.array(sorted(g.nodes()))
-    class_list = {}
-    for i in range(num_classes):
-        class_list[i] = nodelist[rank==i]
-        for node in class_list[i]:
-            for nei in class_list[i]:
-                g.add_edge(node, nei)
-            
-    adj = nx.adjacency_matrix(g, sorted(g.nodes()))
-    del g
-    adj = normalize_adj(adj)#+sp.eye(adj.shape[0]))
-    adj = sparse_mx_to_torch_sparse_tensor(adj)
-    return adj
-
-def rand_train_test_idx(label, train_prop=.5, valid_prop=.25, ignore_negative=True):
-    """ randomly splits label into train/valid/test splits """
-    if ignore_negative:
-        labeled_nodes = torch.where(label != -1)[0]
-    else:
-        labeled_nodes = label
-
-    n = labeled_nodes.shape[0]
-    train_num = int(n * train_prop)
-    valid_num = int(n * valid_prop)
-
-    perm = torch.as_tensor(np.random.permutation(n))
-
-    train_indices = perm[:train_num]
-    val_indices = perm[train_num:train_num + valid_num]
-    test_indices = perm[train_num + valid_num:]
-
-    if not ignore_negative:
-        return train_indices, val_indices, test_indices
-
-    train_idx = labeled_nodes[train_indices]
-    valid_idx = labeled_nodes[val_indices]
-    test_idx = labeled_nodes[test_indices]
-
-    return train_idx, valid_idx, test_idx
-
-def random_disassortative_splits(labels, num_classes):
-    # * 0.6 labels for training
-    # * 0.2 labels for validation
-    # * 0.2 labels for testing
-    labels, num_classes = labels, num_classes
-    indices = []
-    for i in range(num_classes):
-        index = torch.nonzero((labels == i)).view(-1)
-        index = index[torch.randperm(index.size(0))]
-        indices.append(index)
-    percls_trn = int(torch.round(0.6*torch.div(labels.size()[0], num_classes)))
-    val_lb = int(round(0.2*labels.size()[0]))
-    # train_index = torch.cat([i[:int(len(i)*0.6)] for i in indices], dim=0)
-    train_index = torch.cat([i[:percls_trn] for i in indices], dim=0)
-
-    # val_index = torch.cat([i[int(len(i)*0.6):int(len(i)*0.8)] for i in indices], dim=0)
-    # test_index = torch.cat([i[int(len(i)*0.8):] for i in indices], dim=0)
-    rest_index = torch.cat([i[percls_trn:] for i in indices], dim=0)
-    rest_index = rest_index[torch.randperm(rest_index.size(0))]
-    val_index = rest_index[:val_lb]
-    test_index = rest_index[val_lb:]
-    
-
-    #train_mask = index_to_mask(train_index, size=labels.size()[0])
-    
-    # val_mask = index_to_mask(val_index, size=labels.size()[0])
-    # test_mask = index_to_mask(test_index, size=labels.size()[0])
-    
-    #val_mask = index_to_mask(rest_index[:val_lb], size=labels.size()[0])
-    #test_mask = index_to_mask(rest_index[val_lb:], size=labels.size()[0])
-    
-    return train_index, val_index, test_index
-
-    
-def data_split(idx, dataset_name):
-    splits_file_path = 'splits/'+dataset_name+'_split_0.6_0.2_'+str(idx)+'.npz'
-    with np.load(splits_file_path) as splits_file:
-        train_mask = splits_file['train_mask']
-        val_mask = splits_file['val_mask']
-        test_mask = splits_file['test_mask']
-    train_mask = th.BoolTensor(train_mask)
-    val_mask = th.BoolTensor(val_mask)
-    test_mask = th.BoolTensor(test_mask)
-    return train_mask, val_mask, test_mask
-
-def normalize_sp(spmx, take_trans=True):
-    rowsum = sp.csr_matrix(spmx.sum(axis=1))#.transpose()
-    r_inv= sp.csr_matrix.power(rowsum, -0.5)
-    #r_inv[np.isinf(r_inv)] = 0.
-    if take_trans:
-        r_inv = r_inv.transpose()
-    scaling_matrix = sp.diags(r_inv.toarray()[0])
-    spmx = scaling_matrix.dot(spmx)
-    spmx = sp.csr_matrix(spmx)
-    
-    return spmx
-
-def normalize(mx):
-    """Row-normalize sparse matrix"""
-    rowsum = np.array(mx.sum(1))
-    r_inv = np.power(rowsum, -1).flatten()
-    r_inv[np.isinf(r_inv)] = 0.
-    r_mat_inv = sp.diags(r_inv)
-    mx = r_mat_inv.dot(mx)
-    return mx
+    return edge_dict, features, labels, edge_index#, train_mask, val_mask, test_mask
 
 
-def accuracy(output, labels):
-    preds = output.max(1)[1].type_as(labels)
-    correct = preds.eq(labels).double()
-    correct = correct.sum()
-    return correct / len(labels)
 
 
-def sparse_mx_to_torch_sparse_tensor(sparse_mx):
-    """Convert a scipy sparse matrix to a torch sparse tensor."""
-    sparse_mx = sparse_mx.tocoo().astype(np.float32)
-    indices = torch.from_numpy(
-        np.vstack((sparse_mx.row, sparse_mx.col)).astype(np.int64))
-    values = torch.from_numpy(sparse_mx.data)
-    shape = torch.Size(sparse_mx.shape)
-    return torch.sparse.FloatTensor(indices, values, shape)
+dataset_drive_url = {
+    'snap-patents' : '1ldh23TSY1PwXia6dU0MYcpyEgX-w3Hia', 
+    'pokec' : '1dNs5E7BrWJbgcHeQ_zuy5Ozp2tRCWG0y', 
+    'yelp-chi': '1fAXtTVQS4CfEk4asqrFw9EPmlUPGbGtJ', 
+}
 
-def parse_index_file(filename):
-    """Parse index file."""
-    index = []
-    for line in open(filename):
-        index.append(int(line.strip()))
-    return index
 
-def sys_normalized_adjacency(adj):
-   adj = sp.coo_matrix(adj)
-   adj = adj + sp.eye(adj.shape[0])
-   row_sum = np.array(adj.sum(1))
-   row_sum=(row_sum==0)*1+row_sum
-   d_inv_sqrt = np.power(row_sum, -0.5).flatten()
-   d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
-   d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
-   return d_mat_inv_sqrt.dot(adj).dot(d_mat_inv_sqrt).tocoo()
-
-def normalize_adj(adj):
-    """Symmetrically normalize adjacency matrix."""
-    adj = sp.coo_matrix(adj)
-    rowsum = np.array(adj.sum(1))
-    d_inv_sqrt = np.power(rowsum, -1).flatten()
-    d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
-    d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
-    return adj.dot(d_mat_inv_sqrt).transpose().dot(d_mat_inv_sqrt).tocoo()
+def pre_aggregate(feats, edge_dict):
+    trans_feats = feats.copy()
+    for i in range(feats.shape[0]):
+            trans_feats[i] = (np.prod(feats[edge_dict[i]],axis=0))
+    return trans_feats
