@@ -281,9 +281,7 @@ def load_graph_data(dataset_name):
     degs = g.in_degrees().float()
     norm = torch.pow(degs, -1)
     norm[torch.isinf(norm)] = 0
-    if torch.cuda.is_available():
-        norm.cuda()
-    g.ndata['norm'] = norm.unsqueeze(1)
+    norm = norm.unsqueeze(1)
     
     return g, num_labels 
 
