@@ -49,7 +49,7 @@ class CPlayer(Module):
     def _elementwise_product(self, nodes):
         return {'neigh':torch.prod(nodes.mailbox['m'],dim=1)}
     
-    def forward(self, g, x):
+    def forward(self, g, x, norm):
          with g.local_scope():
             feat_src = feat_dst = x = torch.mm(x, self.W)
 
@@ -58,7 +58,7 @@ class CPlayer(Module):
             #trans_x = g.ndata['norm']*g.dstdata['neigh']
             trans_x = g.dstdata['neigh']
             
-            out = torch.mm(trans_x, self.V.T)
+            out = norm*torch.mm(trans_x, self.V.T)
             #out = out
 
             return out
