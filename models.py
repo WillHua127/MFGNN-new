@@ -13,8 +13,8 @@ class CPPooling(nn.Module):
         self.fc = FClayer(hidden, out_class)
         self.dropout = dropout
 
-    def forward(self, g, x):
-        fea = F.relu(self.cp(g, x))
+    def forward(self, g, x, norm):
+        fea = F.relu(self.cp(g, x, norm))
         fea = F.dropout(fea, self.dropout, training=self.training)
         out = self.fc(fea)
         return out
