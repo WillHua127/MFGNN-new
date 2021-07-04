@@ -9,7 +9,7 @@ from layers import CPlayer, FClayer
 class CPPooling(nn.Module):
     def __init__(self, in_fea, hidden, out_class,dropout):
         super(CPPooling, self).__init__()
-        self.cp = CPlayer(in_fea, hidden, 2*hidden)
+        self.cp = CPlayer(in_fea, hidden, 4*hidden)
         self.fc = FClayer(hidden, out_class)
         self.dropout = dropout
 
