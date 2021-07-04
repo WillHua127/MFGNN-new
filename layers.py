@@ -56,9 +56,9 @@ class CPlayer(Module):
             g.srcdata['h'] = feat_src
             g.update_all(fn.copy_src('h', 'm'), self._elementwise_product)
             #trans_x = g.ndata['norm']*g.dstdata['neigh']
-            trans_x = g.dstdata['neigh']
+            trans_x = norm*g.dstdata['neigh']
             
-            out = norm*torch.mm(trans_x, self.V.T)
+            out = torch.mm(trans_x, self.V.T)
             #out = out
 
             return out
