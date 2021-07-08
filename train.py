@@ -31,6 +31,8 @@ parser.add_argument('--weight_decay', type=float, default=5e-5,
                     help='Weight decay (L2 loss on parameters).')
 parser.add_argument('--hidden', type=int, default=32,
                     help='Number of hidden units.')
+parser.add_argument('--rank', type=int, default=64,
+                    help='Tensor weight decomposed number.')
 parser.add_argument('--idx', type=int, default=0,
                     help='Split number.')
 parser.add_argument('--dataset_name', type=str,
@@ -110,7 +112,7 @@ def train_sgcnh():
             #adj = reconstruct(old_adj, rank, num_class)
 
             model = CPPooling(in_fea=features.shape[1],
-                    out_class=labels.max().item() + 1, hidden=args.hidden, dropout=args.dropout)
+                    out_class=labels.max().item() + 1, hidden=args.hidden, rank=args.rank, dropout=args.dropout)
 
             if args.cuda:
                 #adj = adj.cuda()
