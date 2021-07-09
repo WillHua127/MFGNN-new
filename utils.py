@@ -92,6 +92,24 @@ def random_disassortative_splits(labels, num_classes):
     
     return train_index, val_index, test_index
 
+def semi_supervised_splits(dataset):
+    if dataset =='cora':
+        train_index, val_index, test_index = range(140), range(140, 640), range(1708, 2708)
+    elif dataset =='citeseer':
+        train_index, val_index, test_index = range(120), range(120, 620), range(2312, 3312)
+    elif dataset =='pubmed':
+        train_index, val_index, test_index = range(60), range(60, 560), range(18717, 19717)
+        
+    train_index = torch.LongTensor(train_index)
+    val_index = torch.LongTensor(val_index)
+    test_index = torch.LongTensor(test_index)
+        
+    #idx_train = range(y)
+    #idx_val = range(y, y+500)
+    #idx_test = range(y+500, y+1500)
+    
+    return train_index, val_index, test_index
+
     
 def data_split(idx, dataset_name):
     splits_file_path = 'splits/'+dataset_name+'_split_0.6_0.2_'+str(idx)+'.npz'
