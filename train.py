@@ -221,7 +221,7 @@ def train_semisupervised():
         #adj = reconstruct(old_adj, rank, num_class)
 
         model = CPPooling(in_fea=features.shape[1],
-                out_class=labels.max().item() + 1, hidden=args.hidden, dropout=args.dropout)
+                    out_class=labels.max().item() + 1, hidden=args.hidden, rank=args.rank, dropout=args.dropout)
 
         if args.cuda:
             model.cuda()
