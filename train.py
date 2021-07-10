@@ -40,7 +40,7 @@ parser.add_argument('--idx', type=int, default=0,
 parser.add_argument('--dataset_name', type=str,
                     help='Dataset name.', default = 'film')
 parser.add_argument('--model', type=str,
-                    help='Dataset name.', default = 'mfgcn')
+                    help='one layer model or two layer model.', default = 'one')
 parser.add_argument('--degree', type=int,
                     help='Dataset name.', default = 1)
 parser.add_argument('--sub_dataname', type=str,
