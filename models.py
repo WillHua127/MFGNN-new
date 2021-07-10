@@ -27,7 +27,7 @@ class TwoCPPooling(nn.Module):
         self.cp2 = CPlayer(hidden, out_class, rank2)
         self.dropout = dropout
 
-    def forward(self, g, x, norm):
+    def forward(self, g, x):
         fea = F.relu(self.cp1(g, x))
         fea = F.dropout(fea, self.dropout, training=self.training)
         out = self.cp2(g, fea)
