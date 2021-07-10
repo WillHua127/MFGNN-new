@@ -12,7 +12,7 @@ import matplotlib
 import itertools
 
 from utils import load_data, accuracy, full_load_data, data_split, random_disassortative_splits, rand_train_test_idx, load_graph_data, semi_supervised_splits
-from models import CPPooling
+from models import CPPooling, TwoCPPooling
 
 
 
