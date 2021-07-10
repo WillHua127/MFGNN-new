@@ -19,6 +19,8 @@ import csv
 from os import path
 from sklearn.preprocessing import label_binarize
 from google_drive_downloader import GoogleDriveDownloader as gdd
+from torch_geometric.datasets import CitationFull, Coauthor, Amazon, Flickr, WikiCS
+from torch_geometric.utils import to_dense_adj, contains_self_loops, remove_self_loops
 
 sys.setrecursionlimit(99999)
 
@@ -224,6 +226,9 @@ def load_graph_data(dataset_name):
     elif dataset_name in {'CitationFull_dblp', 'Coauthor_CS', 'Coauthor_Physics', 'Amazon_Computers', 'Amazon_Photo'}:
         dataset, name = dataset_name.split("_")
         adj, features, labels = load_torch_geometric_data(dataset, name)
+
+    elif dataset_name in {'Flickr', 'WikiCS'}:
+        adj, features, labels = load_torch_geometric_data(dataset_name, None)
         
     else:
         graph_adjacency_list_file_path = os.path.join('new_data', dataset_name, 'out1_graph_edges.txt')
