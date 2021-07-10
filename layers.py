@@ -36,9 +36,11 @@ class CPlayer(Module):
         
     def reset_parameters(self):
         #gain = nn.init.calculate_gain('relu')
-        stdv = 1. / math.sqrt(self.V.size(0))
-        self.W.data.uniform_(-stdv, stdv)
-        self.V.data.uniform_(-stdv, stdv)
+        #stdv = 1. / math.sqrt(self.V.size(0))
+        #self.W.data.uniform_(-stdv, stdv)
+        #self.V.data.uniform_(-stdv, stdv)
+        nn.init.xavier_uniform_(self.W)
+        nn.init.xavier_uniform_(self.V)
                 
     def cpmm(self, x, edge):
         hat_x = x.clone()
