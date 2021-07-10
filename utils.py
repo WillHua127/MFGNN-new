@@ -280,7 +280,10 @@ def load_graph_data(dataset_name):
         labels = np.array(
             [label for _, label in sorted(G.nodes(data='label'), key=lambda x: x[0])])
     
-    adj.setdiag(1)
+    if isinstance(adj, np.ndarray):
+        np.fill_diagonal(a, 1)
+    else:
+        adj.setdiag(1)
     g = dgl.DGLGraph(adj)
     
     features = preprocess_features(features)
