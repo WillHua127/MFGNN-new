@@ -114,9 +114,14 @@ def train_supervised():
             #rank = OneVsRestClassifier(LinearRegression()).fit(features[idx_train], labels[idx_train]).predict(features)
             #print(rank)
             #adj = reconstruct(old_adj, rank, num_class)
-
-            model = CPPooling(in_fea=features.shape[1],
-                    out_class=labels.max().item() + 1, hidden=args.hidden, rank=args.rank, dropout=args.dropout)
+            
+            
+            if args.model == 'one':
+                model = CPPooling(in_fea=features.shape[1],
+                          out_class=labels.max().item() + 1, hidden=args.hidden, rank=args.rank, dropout=args.dropout)
+            elif args.model == 'two':
+                model = TwoCPPooling(in_fea=features.shape[1],
+                          out_class=labels.max().item() + 1, hidden=args.hidden, rank1=args.rank, rank2=args.ranktwo, dropout=args.dropout)
 
             if args.cuda:
                 #adj = adj.cuda()
@@ -222,8 +227,12 @@ def train_semisupervised():
         #print(rank)
         #adj = reconstruct(old_adj, rank, num_class)
 
-        model = CPPooling(in_fea=features.shape[1],
-                    out_class=labels.max().item() + 1, hidden=args.hidden, rank=args.rank, dropout=args.dropout)
+        if args.model == 'one':
+                model = CPPooling(in_fea=features.shape[1],
+                          out_class=labels.max().item() + 1, hidden=args.hidden, rank=args.rank, dropout=args.dropout)
+        elif args.model == 'two':
+                model = TwoCPPooling(in_fea=features.shape[1],
+                          out_class=labels.max().item() + 1, hidden=args.hidden, rank1=args.rank, rank2=args.ranktwo, dropout=args.dropout)
 
         if args.cuda:
             model.cuda()
