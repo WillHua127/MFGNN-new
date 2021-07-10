@@ -123,7 +123,7 @@ def train_supervised():
                           out_class=labels.max().item() + 1, hidden=args.hidden, rank=args.rank, dropout=args.dropout)
             elif args.model == 'two':
                 model = TwoCPPooling(in_fea=features.shape[1],
-                          out_class=labels.max().item() + 1, hidden=args.hidden, rank1=args.rank, rank2=args.ranktwo, dropout=args.dropout)
+                          out_class=labels.max().item() + 1, hidden1=args.hidden, hidden2=args.hiddentwo, rank1=args.rank, rank2=args.ranktwo, dropout=args.dropout)
 
             if args.cuda:
                 #adj = adj.cuda()
@@ -234,7 +234,8 @@ def train_semisupervised():
                           out_class=labels.max().item() + 1, hidden=args.hidden, rank=args.rank, dropout=args.dropout)
         elif args.model == 'two':
                 model = TwoCPPooling(in_fea=features.shape[1],
-                          out_class=labels.max().item() + 1, hidden=args.hidden, rank1=args.rank, rank2=args.ranktwo, dropout=args.dropout)
+                          out_class=labels.max().item() + 1, hidden1=args.hidden, hidden2=args.hiddentwo, rank1=args.rank, rank2=args.ranktwo, dropout=args.dropout)
+
 
         if args.cuda:
             model.cuda()
