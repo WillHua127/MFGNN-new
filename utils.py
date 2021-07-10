@@ -221,6 +221,10 @@ def load_graph_data(dataset_name):
     elif dataset_name in {'yelpchi'}:
         adj, features, labels = load_yelpchi_dataset()
         
+    elif dataset_name in {'CitationFull_dblp', 'Coauthor_CS', 'Coauthor_Physics', 'Amazon_Computers', 'Amazon_Photo'}:
+        dataset, name = dataset_name.split("_")
+        adj, features, labels = load_torch_geometric_data(dataset, name)
+        
     else:
         graph_adjacency_list_file_path = os.path.join('new_data', dataset_name, 'out1_graph_edges.txt')
         graph_node_features_and_labels_file_path = os.path.join('new_data', dataset_name,
