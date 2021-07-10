@@ -21,16 +21,19 @@ class CPPooling(nn.Module):
     
     
 class TwoCPPooling(nn.Module):
-    def __init__(self, in_fea, hidden, out_class, rank1, rank2, dropout):
+    def __init__(self, in_fea, hidden1, hidden2, out_class, rank1, rank2, dropout):
         super(TwoCPPooling, self).__init__()
-        self.cp1 = CPlayer(in_fea, hidden, rank1)
-        self.cp2 = CPlayer(hidden, out_class, rank2)
+        self.cp1 = CPlayer(in_fea, hidden1, rank1)
+        self.cp2 = CPlayer(hidden1, hidden2, rank2)
+        self.fc = FClayer(hidden2, out_class)
         self.dropout = dropout
 
     def forward(self, g, x):
         fea = F.relu(self.cp1(g, x))
         fea = F.dropout(fea, self.dropout, training=self.training)
-        out = self.cp2(g, fea)
+        fea = F.relu(self.cp2(g, fea))
+        fea = F.dropout(fea, self.dropout, training=self.training)
+        out = self.fc(fea)
         return out
 
     
