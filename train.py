@@ -71,7 +71,7 @@ if args.cuda:
     features = features.cuda()
     #adj = adj.cuda()
     labels = labels.cuda()
-    norm = norm.cuda()
+    #norm = norm.cuda()
     #idx_train = idx_train.cuda()
     #idx_val = idx_val.cuda()
     #idx_test = idx_test.cuda()
@@ -79,7 +79,7 @@ if args.cuda:
     
 def test_sgcnh(model, idx_train, idx_val, idx_test):
     model.eval()
-    output = model(g, features, norm)
+    output = model(g, features)
     pred = torch.argmax(F.softmax(output,dim=1) , dim=1)
     pred = F.one_hot(pred).float()
     output = F.log_softmax(output, dim=1)
@@ -136,7 +136,7 @@ def train_supervised():
                 t = time.time()
                 model.train()
                 optimizer.zero_grad()
-                output = model(g, features, norm)
+                output = model(g, features)
                 #print(F.softmax(output,dim=1))
                 output = F.log_softmax(output, dim=1)
                 #print(output)
@@ -149,7 +149,7 @@ def train_supervised():
                     # Evaluate validation set performance separately,
                     # deactivates dropout during validation run.
                     model.eval()
-                    output = model(g, features, norm)
+                    output = model(g, features)
                     output = F.log_softmax(output, dim=1)
 
                 val_loss = F.nll_loss(output[idx_val], labels[idx_val])
@@ -239,7 +239,7 @@ def train_semisupervised():
             t = time.time()
             model.train()
             optimizer.zero_grad()
-            output = model(g, features, norm)
+            output = model(g, features)
             #print(F.softmax(output,dim=1))
             output = F.log_softmax(output, dim=1)
             #print(output)
@@ -252,7 +252,7 @@ def train_semisupervised():
                 # Evaluate validation set performance separately,
                 # deactivates dropout during validation run.
                 model.eval()
-                output = model(g, features, norm)
+                output = model(g, features)
                 output = F.log_softmax(output, dim=1)
 
             val_loss = F.nll_loss(output[idx_val], labels[idx_val])
