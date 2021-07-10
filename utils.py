@@ -281,7 +281,7 @@ def load_graph_data(dataset_name):
             [label for _, label in sorted(G.nodes(data='label'), key=lambda x: x[0])])
     
     if isinstance(adj, np.ndarray):
-        np.fill_diagonal(a, 1)
+        np.fill_diagonal(adj, 1)
     else:
         adj.setdiag(1)
     g = dgl.DGLGraph(adj)
@@ -381,17 +381,17 @@ def load_torch_geometric_data(dataset, name):
     edge = data[0].edge_index
     if contains_self_loops(edge):
         edge = remove_self_loops(edge)[0]
-        print("Original data contains self-loop, it is now removed")
+        #print("Original data contains self-loop, it is now removed")
 
     adj = to_dense_adj(edge)[0].numpy()
 
-    print("Nodes: %d, edges: %d, features: %d, classes: %d. \n"%(len(adj[0]), len(edge[0])/2, len(data[0].x[0]), len(np.unique(data[0].y))))
+    #print("Nodes: %d, edges: %d, features: %d, classes: %d. \n"%(len(adj[0]), len(edge[0])/2, len(data[0].x[0]), len(np.unique(data[0].y))))
 
-    mask = np.transpose(adj) != adj
-    col_sum = adj.sum(axis=0)
-    print("Check adjacency matrix is sysmetric: %r"%(mask.sum().item() == 0))
-    print("Chenck the number of isolated nodes: %d"%((col_sum == 0).sum().item()))
-    print("Node degree Max: %d, Mean: %.4f, SD: %.4f"%(col_sum.max(), col_sum.mean(), col_sum.std()))
+    #mask = np.transpose(adj) != adj
+    #col_sum = adj.sum(axis=0)
+    #print("Check adjacency matrix is sysmetric: %r"%(mask.sum().item() == 0))
+    #print("Chenck the number of isolated nodes: %d"%((col_sum == 0).sum().item()))
+    #print("Node degree Max: %d, Mean: %.4f, SD: %.4f"%(col_sum.max(), col_sum.mean(), col_sum.std()))
 
     return adj, data[0].x.numpy(), data[0].y.numpy()
 
