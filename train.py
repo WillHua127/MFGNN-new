@@ -32,7 +32,9 @@ parser.add_argument('--weight_decay', type=float, default=5e-5,
 parser.add_argument('--hidden', type=int, default=32,
                     help='Number of hidden units.')
 parser.add_argument('--rank', type=int, default=64,
-                    help='Tensor weight decomposed number.')
+                    help='Tensor weight decomposed number for layer1.')
+parser.add_argument('--ranktwo', type=int, default=32,
+                    help='Tensor weight decomposed number for layer2.')
 parser.add_argument('--idx', type=int, default=0,
                     help='Split number.')
 parser.add_argument('--dataset_name', type=str,
