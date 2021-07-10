@@ -31,6 +31,8 @@ parser.add_argument('--weight_decay', type=float, default=5e-5,
                     help='Weight decay (L2 loss on parameters).')
 parser.add_argument('--hidden', type=int, default=32,
                     help='Number of hidden units.')
+parser.add_argument('--hiddentwo', type=int, default=16,
+                    help='Number of hidden units.')
 parser.add_argument('--rank', type=int, default=64,
                     help='Tensor weight decomposed number for layer1.')
 parser.add_argument('--ranktwo', type=int, default=32,
