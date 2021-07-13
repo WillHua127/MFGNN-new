@@ -16,6 +16,7 @@ class GCN(nn.Module):
         super(GCN, self).__init__()
         self.layers = nn.ModuleList()
         self.dropout = dropout
+        self.n_layers = n_layers
         # input layer
         self.layers.append(GraphConv(in_fea, hidden, activation=F.relu))
         # hidden layers
@@ -26,11 +27,17 @@ class GCN(nn.Module):
 
     def forward(self, g, features):
         h = features
-        for i, layer in enumerate(self.layers):
-            if i != 0:
-                h = F.dropout(h, self.dropout, training=self.training)
-            h = layer(g, h)
-        return h
+        for i in range(self.n_layers-1):
+            h = self.layers[i](g, h)
+            h = F.dropout(h, self.dropout, training=self.training)
+            
+        return self.layers[-1](h)
+            
+        #for i, layer in enumerate(self.layers):
+        #    if i != 0:
+        #        h = F.dropout(h, self.dropout, training=self.training)
+        #    h = layer(g, h)
+        #return h
     
 class CPPooling(nn.Module):
     def __init__(self, in_fea, hidden, out_class, rank, dropout):
