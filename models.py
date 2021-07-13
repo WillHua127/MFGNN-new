@@ -15,6 +15,7 @@ class GCN(nn.Module):
                  dropout):
         super(GCN, self).__init__()
         self.layers = nn.ModuleList()
+        self.dropout = dropout
         # input layer
         self.layers.append(GraphConv(in_fea, hidden, activation=F.relu))
         # hidden layers
