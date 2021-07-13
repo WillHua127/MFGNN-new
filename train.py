@@ -139,7 +139,7 @@ def train_supervised():
             vlss_early_model = None
             curr_step = 0
             best_test = 0
-            best_training_loss = None
+            best_training_loss = np.inf
             for epoch in range(args.epochs):
                 num_epoch = num_epoch+1
                 t = time.time()
