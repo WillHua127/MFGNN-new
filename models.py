@@ -23,7 +23,7 @@ class GCN(nn.Module):
         for i in range(n_layers - 1):
             self.layers.append(GraphConv(hidden, hidden, activation=F.relu))
         # output layer
-        self.layers.append(FClayer(hidden, out_class))
+        self.layers.append(GraphConv(hidden, out_class))
 
     def forward(self, g, features):
         h = features
@@ -31,7 +31,7 @@ class GCN(nn.Module):
             h = self.layers[i](g, h)
             h = F.dropout(h, self.dropout, training=self.training)
             
-        return self.layers[-1](h)
+        return self.layers[-1](g,h)
             
         #for i, layer in enumerate(self.layers):
         #    if i != 0:
