@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from layers import CPlayer, FClayer
-from dgl.nn.pytorch import GraphConv
+from layers import CPlayer, FClayer, GraphConv
+#from dgl.nn.pytorch import GraphConv
     
 
 
@@ -23,7 +23,7 @@ class GCN(nn.Module):
         for i in range(n_layers - 1):
             self.layers.append(GraphConv(hidden, hidden, activation=F.relu))
         # output layer
-        self.layers.append(GraphConv(hidden, out_class))
+        self.layers.append(FClayer(hidden, out_class))
 
     def forward(self, g, features):
         h = features
@@ -31,14 +31,9 @@ class GCN(nn.Module):
             h = self.layers[i](g, h)
             h = F.dropout(h, self.dropout, training=self.training)
             
-        return self.layers[-1](g,h)
+        return self.layers[-1](h)
             
-        #for i, layer in enumerate(self.layers):
-        #    if i != 0:
-        #        h = F.dropout(h, self.dropout, training=self.training)
-        #    h = layer(g, h)
-        #return h
-    
+        
 class CPPooling(nn.Module):
     def __init__(self, in_fea, hidden, out_class, rank, dropout):
         super(CPPooling, self).__init__()
