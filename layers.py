@@ -27,7 +27,7 @@ class GraphConv(nn.Module):
 
 
     def forward(self, graph, fea):
-        with g.local_scope():
+        with graph.local_scope():
            feat_src = torch.mm(fea, self.weight)
            graph.srcdata['h'] = feat_src
            graph.update_all(fn.copy_src('h', 'm'), fn.sum(msg='m', out='h'))
