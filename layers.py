@@ -16,7 +16,7 @@ class GraphConv(nn.Module):
                  out_feats,
                  activation=None):
         super(GraphConv, self).__init__()
-        self.weight = nn.Parameter(torch.Tensor(in_feats, out_feats))
+        self.weight = Parameter(torch.Tensor(in_feats, out_feats))
 
         self.reset_parameters()
 
