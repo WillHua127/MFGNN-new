@@ -9,6 +9,32 @@ import torch.nn as nn
 
 import dgl.function as fn
         
+        
+class GraphConv(nn.Module):
+    def __init__(self,
+                 in_feats,
+                 out_feats,
+                 activation=None):
+        super(GraphConv, self).__init__()
+        self.weight = nn.Parameter(torch.Tensor(in_feats, out_feats))
+
+        self.reset_parameters()
+
+        self.activation = activation
+
+    def reset_parameters(self):
+        nn.init.xavier_uniform_(self.weight)
+
+
+    def forward(self, graph, fea):
+        with g.local_scope():
+           feat_src = torch.mm(fea, self.weight)
+           graph.srcdata['h'] = feat_src
+           graph.update_all(fn.copy_src('h', 'm'), fn.sum(msg='m', out='h'))
+           rst = graph.dstdata['h']
+           rst = self.activation(rst)
+
+           return rst
 
 class FClayer(Module):
     def __init__(self, in_fea, out_class):
