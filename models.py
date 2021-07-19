@@ -24,7 +24,7 @@ class GAT(nn.Module):
             self.gat_layers.append(GATConv(num_hidden * heads[l-1], num_hidden, heads[l]))
         # output projection
         #self.gat_layers.append(GATConv(num_hidden * heads[-2], num_classes, heads[-1]))
-        self.gat_layers.append(FClayer(num_hidden, out_class))
+        self.gat_layers.append(FClayer(num_hidden * heads[-2], num_classes))
 
     def forward(self, g, features):
         h = features
