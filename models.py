@@ -23,12 +23,13 @@ class GAT(nn.Module):
             # due to multi-head, the in_dim = num_hidden * num_heads
             self.gat_layers.append(GATConv(num_hidden * heads[l-1], num_hidden, heads[l]))
         # output projection
-        self.gat_layers.append(GATConv(num_hidden * heads[-2], num_classes, heads[-1]))
+        #self.gat_layers.append(GATConv(num_hidden * heads[-2], num_classes, heads[-1]))
+        self.gat_layers.append(FClayer(num_hidden, out_class))
 
     def forward(self, g, features):
         h = features
         for i in range(self.num_layers-1):
-            h = F.relu(self.gat_layers[i](g, h))
+            h = F.relu(self.gat_layers[i](g, h)).flatten(1)
             h = F.dropout(h, self.dropout, training=self.training)
             
         return self.gat_layers[-1](h)
