@@ -8,7 +8,52 @@ import torch.nn.functional as F
 import torch.nn as nn
 
 import dgl.function as fn
+from dgl.nn.pytorch import edge_softmax
         
+class GATConv(nn.Module):
+    def __init__(self,
+                 in_feats,
+                 out_feats,
+                 num_heads,
+                 negative_slope=0.2):
+        super(GATConv, self).__init__()
+        self._num_heads = num_heads
+        self._in_src_feats = in_feats
+        self._out_feats = out_feats
+        self.fc = nn.Linear(self._in_src_feats, out_feats * num_heads, bias=False)
+        self.attn_l = nn.Parameter(torch.FloatTensor(size=(1, num_heads, out_feats)))
+        self.attn_r = nn.Parameter(torch.FloatTensor(size=(1, num_heads, out_feats)))
+        self.leaky_relu = nn.LeakyReLU(negative_slope)
+    
+        self.reset_parameters()
+
+
+    def reset_parameters(self):
+        nn.init.xavier_uniform_(self.fc.weight)
+        nn.init.xavier_uniform_(self.attn_l)
+        nn.init.xavier_uniform_(self.attn_r)
+    
+            
+    
+    def forward(self, graph, feat):
+        with graph.local_scope():
+            feat_src = feat_dst = self.fc(feat).view(-1, self._num_heads, self._out_feats)#.view(-1, 1, 1)
+
+            el = (feat_src * self.attn_l).sum(dim=-1).unsqueeze(-1)
+            er = (feat_dst * self.attn_r).sum(dim=-1).unsqueeze(-1)
+            graph.srcdata.update({'ft': feat_src, 'el': el})
+            graph.dstdata.update({'er': er})
+            # compute edge attention, el and er are a_l Wh_i and a_r Wh_j respectively.
+            graph.apply_edges(fn.u_add_v('el', 'er', 'e'))
+            e = self.leaky_relu(graph.edata.pop('e'))
+            # compute softmax
+            graph.edata['a'] = edge_softmax(graph, e)
+            # message passing
+            graph.update_all(fn.u_mul_e('ft', 'a', 'm'),
+                             fn.sum('m', 'ft'))
+            
+            rst = graph.dstdata['ft']
+            return rst
         
 class GraphConv(nn.Module):
     def __init__(self,

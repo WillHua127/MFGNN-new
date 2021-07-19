@@ -1,10 +1,38 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from layers import CPlayer, FClayer, GraphConv
+from layers import CPlayer, FClayer, GraphConv, GATConv
 #from dgl.nn.pytorch import GraphConv
     
 
+class GAT(nn.Module):
+    def __init__(self,
+                 num_layers,
+                 in_dim,
+                 num_hidden,
+                 num_classes,
+                 heads,
+                 dropout):
+        super(GAT, self).__init__()
+        self.num_layers = num_layers
+        self.gat_layers = nn.ModuleList()
+        self.dropout = dropout
+        # input projection (no residual)
+        self.gat_layers.append(GATConv(in_dim, num_hidden, heads[0]))
+        # hidden layers
+        for l in range(1, num_layers):
+            # due to multi-head, the in_dim = num_hidden * num_heads
+            self.gat_layers.append(GATConv(num_hidden * heads[l-1], num_hidden, heads[l]))
+        # output projection
+        self.gat_layers.append(GATConv(num_hidden * heads[-2], num_classes, heads[-1]))
 
+    def forward(self, g, features):
+        h = features
+        for i in range(self.num_layers-1):
+            h = F.relu(self.gat_layers[i](g, h))
+            h = F.dropout(h, self.dropout, training=self.training)
+            
+        return self.gat_layers[-1](h)
+    
 
 class GCN(nn.Module):
     def __init__(self,
