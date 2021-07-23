@@ -89,7 +89,7 @@ def train(args, model, train_graphs, train_labels, optimizer, epoch):
         label = torch.LongTensor([train_labels[idx] for idx in selected_idx])
         if args.cuda:
             label = label.cuda()
-            feat = feat.cuda()
+            feat = [fea.cuda() for fea in feat]
         
         output = model(batch_graph, feat)
 
