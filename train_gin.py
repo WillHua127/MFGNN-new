@@ -25,7 +25,7 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
 parser.add_argument('--fastmode', action='store_true', default=False,
                     help='Validate during training pass.')
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
-parser.add_argument('--epochs', type=int, default=500,
+parser.add_argument('--epochs', type=int, default=5000,
                     help='Number of epochs to train.')
 parser.add_argument('--lr', type=float, default=0.05,
                     help='Initial learning rate.')
@@ -147,7 +147,7 @@ def test(args, model, train_graphs, test_graphs, train_labels, test_labels, epoc
     return acc_train, acc_test
     
 def main():
-    patience = 50
+    patience = 100
     best_result = 0
     best_std = 0
     best_dropout = None
