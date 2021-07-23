@@ -142,3 +142,56 @@ class CPlayer(Module):
         #output = torch.mm(output, self.fc)
         
         #return output
+        
+class GINConv(nn.Module):
+    def __init__(self,
+                 apply_func,
+                 aggregator_type,
+                 init_eps=0,
+                 learn_eps=False,
+                 hidden = 32,
+                 rank = 32,
+                 out = 8):
+        super(GINConv, self).__init__()
+        self.apply_func = apply_func
+        self._aggregator_type = aggregator_type
+        #self.V = Parameter(torch.FloatTensor(out, rank))
+        #self.W = Parameter(torch.FloatTensor(hidden, rank))
+        #self.batch_norm = nn.BatchNorm1d(hidden)
+        if aggregator_type == 'sum':
+            self._reducer = fn.sum
+        elif aggregator_type == 'max':
+            self._reducer = fn.max
+        elif aggregator_type == 'mean':
+            self._reducer = fn.mean
+        else:
+            raise KeyError('Aggregator type {} not recognized.'.format(aggregator_type))
+        # to specify whether eps is trainable or not.
+        if learn_eps:
+            self.eps = torch.nn.Parameter(torch.FloatTensor([init_eps]))
+        else:
+            self.register_buffer('eps', torch.FloatTensor([init_eps]))
+        
+        #self.reset_parameters()
+        
+    def reset_parameters(self):
+        nn.init.xavier_uniform_(self.V)
+        nn.init.xavier_uniform_(self.W)
+
+    def forward(self, graph, feat):
+        with graph.local_scope():
+            aggregate_fn = fn.copy_src('h', 'm')
+
+            feat_src = feat_dst = feat
+            graph.srcdata['h'] = feat_src
+            graph.update_all(aggregate_fn, self._reducer('m', 'neigh'))
+            rst = (1 + self.eps) * feat_dst + graph.dstdata['neigh']
+            if self.apply_func is not None:
+                #rst = F.relu(self.batch_norm(self.apply_func(rst)))
+                rst = self.apply_func(rst)
+                #rst = torch.mm(rst, self.W)
+                #cp_rst = torch.prod(rst, 0).unsqueeze(0)
+                #readout = torch.mm(cp_rst, self.V.T)
+            #print(readout.shape)
+            return rst
+

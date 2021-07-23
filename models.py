@@ -1,7 +1,11 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from layers import CPlayer, FClayer, GraphConv, GATConv
+from layers import CPlayer, FClayer, GraphConv, GATConv, GINConv
 #from dgl.nn.pytorch import GraphConv
+from dgl.nn.pytorch.glob import SumPooling, AvgPooling, MaxPooling
+import torch
+from torch.nn.parameter import Parameter
+import dgl.function as fn
     
 
 class GAT(nn.Module):
@@ -76,7 +80,161 @@ class CPPooling(nn.Module):
         out = self.fc(fea)
         return out
     
+class graph_cp_pooling(nn.Module):
+    def __init__(self, in_fea, hidden, rank, init=False):
+        super(graph_cp_pooling, self).__init__()
+        self.W = Parameter(torch.FloatTensor(in_fea, rank))
+        self.V = Parameter(torch.FloatTensor(hidden, rank))
+        self.init = init
+        self.reset_parameters()
+        
+    def reset_parameters(self):
+        nn.init.xavier_uniform_(self.W)
+        nn.init.xavier_uniform_(self.V)
+                
     
+    def _elementwise_product(self, nodes):
+        return {'neigh':torch.prod(nodes.mailbox['m'],dim=1)}
+    
+    
+    def forward(self, x):
+        if self.init:
+            feat = torch.mm(x, self.W)
+            feat = torch.prod(feat,0).unsqueeze(0)
+            readout = torch.mm(feat, self.V.T)
+        else:
+            feat = torch.mm(x, self.W)
+            feat = torch.prod(feat,0).unsqueeze(0)
+            readout = torch.mm(feat, self.V.T)
+        return readout
+
+        
+class GIN(nn.Module):
+    def __init__(self, num_layers, num_mlp_layers, input_dim, hidden_dim,
+                 output_dim, final_dropout, learn_eps, graph_pooling_type,
+                 neighbor_pooling_type, batch_size, rank_dim=32):
+        super(GIN, self).__init__()
+        self.num_layers = num_layers
+        self.learn_eps = learn_eps
+        self.graph_pooling_type = graph_pooling_type
+        self.batch_size = batch_size
+
+        # List of MLPs
+        self.ginlayers = torch.nn.ModuleList()
+        self.batch_norms = torch.nn.ModuleList()
+        self.cplayers = torch.nn.ModuleList()
+
+        for layer in range(self.num_layers - 1):
+            if layer == 0:
+                mlp = MLP(num_mlp_layers, input_dim, hidden_dim, hidden_dim)
+            else:
+                mlp = MLP(num_mlp_layers, hidden_dim, hidden_dim, hidden_dim)
+            
+            if graph_pooling_type == 'cp':    
+                self.ginlayers.append(
+                    GINConv(ApplyNodeFunc(mlp), neighbor_pooling_type, 0, self.learn_eps, hidden_dim, rank_dim, output_dim))
+            else:
+                self.ginlayers.append(
+                    GINConv(ApplyNodeFunc(mlp), neighbor_pooling_type, 0, self.learn_eps, hidden_dim, rank_dim, output_dim))
+            self.batch_norms.append(nn.BatchNorm1d(hidden_dim))
+
+        self.linears_prediction = torch.nn.ModuleList()
+
+        for layer in range(num_layers):
+            if layer == 0:
+                self.linears_prediction.append(
+                    nn.Linear(hidden_dim, output_dim))
+                self.cplayers.append(graph_cp_pooling(input_dim, hidden_dim, rank_dim, init=True))
+            else:
+                self.linears_prediction.append(
+                    nn.Linear(hidden_dim, output_dim))
+                self.cplayers.append(graph_cp_pooling(hidden_dim, output_dim, rank_dim, init=False))
+
+            
+
+        self.drop = nn.Dropout(final_dropout)
+
+        if graph_pooling_type == 'sum':
+            self.pool = SumPooling()
+        elif graph_pooling_type == 'mean':
+            self.pool = AvgPooling()
+        elif graph_pooling_type == 'max':
+            self.pool = MaxPooling()
+        elif graph_pooling_type == 'cp':
+            self.pool = SumPooling()
+        else:
+            raise NotImplementedError
+
+    def forward(self, g, h):
+        if self.graph_pooling_type == 'cp':
+            fea = h
+            pooled_one_feas = [0] * len(g)
+            #pooled_graph_feas = [torch.cat([self.pool(g[idx], h[idx]) for idx in range(len(g))],0)]
+            pooled_graph_feas = [torch.cat([self.cplayers[0](h[idx]) for idx in range(len(g))],0)]
+            score_over_layer = 0
+            #score_over_layer += self.drop(pooled_graph_feas[0])
+            #print(torch.cat([self.cplayers[0](h[idx]) for idx in range(len(g))],0).shape)
+
+            #for i in range(self.num_layers - 1):
+                #h = self.ginlayers[i](g, h)
+                #fea = [F.relu(self.batch_norms[i](self.ginlayers[i](g[idx], fea[idx]))) for idx in range(len(g))]
+                #pooled_fea = torch.cat([self.pool(g[idx], fea[idx]) for idx in range(len(g))],0)
+                #pooled_feas.append(pooled_fea)
+            #    for idx, graph in enumerate(g):
+            #        fea[idx] = F.relu(self.batch_norms[i](self.ginlayers[i](graph, fea[idx])))
+                    #print(fea[idx].shape)
+                    #fea[idx] = F.relu(self.ginlayers[i](graph, fea[idx]))
+                    #print(fea[idx].shape)
+                    #print(fea[idx].shape)
+                    #fea[idx] = self.ginlayers[i](graph, fea[idx])
+            #        pooled_one_feas[idx] = (self.cplayers[i+1](fea[idx]))
+                    #print(pooled_one_feas[idx].shape)
+            #    pooled_fea = torch.cat(pooled_one_feas,0)
+                #pooled_fea = torch.cat(pooled_one_feas,0)
+            #    score_over_layer += self.drop(pooled_fea)
+                #pooled_graph_feas.append(pooled_fea)
+
+                #fea = torch.cat([self.ginlayers[i](graph, graph.ndata['attr']) for graph in g],0)
+                #temp_fea = self.batch_norms[i](torch.cat(fea, 0))
+                #temp_fea = F.relu(temp_fea)
+                #hidden_rep.append(fea)
+
+
+            for i, pooled_fea in enumerate(pooled_graph_feas):
+                score_over_layer += self.drop(self.linears_prediction[i](pooled_fea))
+            #    pooled_h = self.pool(g, h)
+            #    score_over_layer += self.drop(self.linears_prediction[i](pooled_h))
+
+            return score_over_layer
+        else:
+            fea = h
+            pooled_one_feas = [0] * len(g)
+            pooled_graph_feas = [torch.cat([self.pool(g[idx], h[idx]) for idx in range(len(g))],0)]
+
+            for i in range(self.num_layers - 1):
+                #h = self.ginlayers[i](g, h)
+                #fea = [F.relu(self.batch_norms[i](self.ginlayers[i](g[idx], fea[idx]))) for idx in range(len(g))]
+                #pooled_fea = torch.cat([self.pool(g[idx], fea[idx]) for idx in range(len(g))],0)
+                #pooled_feas.append(pooled_fea)
+                for idx, graph in enumerate(g):
+                    fea[idx] = F.relu(self.batch_norms[i](self.ginlayers[i](graph, fea[idx])))
+                    pooled_one_feas[idx] = self.pool(graph, fea[idx])
+                pooled_fea = torch.cat(pooled_one_feas,0)
+                pooled_graph_feas.append(pooled_fea)
+
+                #fea = torch.cat([self.ginlayers[i](graph, graph.ndata['attr']) for graph in g],0)
+                #temp_fea = self.batch_norms[i](torch.cat(fea, 0))
+                #temp_fea = F.relu(temp_fea)
+                #hidden_rep.append(fea)
+
+            score_over_layer = 0
+            for i, pooled_fea in enumerate(pooled_graph_feas):
+                score_over_layer += self.drop(self.linears_prediction[i](pooled_fea))
+            #    pooled_h = self.pool(g, h)
+            #    score_over_layer += self.drop(self.linears_prediction[i](pooled_h))
+
+            return score_over_layer
+        
 class TwoCPPooling(nn.Module):
     def __init__(self, in_fea, hidden1, hidden2, out_class, rank1, rank2, dropout):
         super(TwoCPPooling, self).__init__()

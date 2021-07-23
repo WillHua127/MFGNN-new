@@ -19,8 +19,8 @@ import csv
 from os import path
 from sklearn.preprocessing import label_binarize
 from google_drive_downloader import GoogleDriveDownloader as gdd
-from torch_geometric.datasets import CitationFull, Coauthor, Amazon, Flickr, WikiCS
-from torch_geometric.utils import to_dense_adj, contains_self_loops, remove_self_loops
+from sklearn.model_selection import StratifiedKFold
+from dgl import backend
 
 sys.setrecursionlimit(99999)
 
@@ -93,6 +93,8 @@ def random_disassortative_splits(labels, num_classes):
     
     
     return train_index, val_index, test_index
+
+
 
 def semi_supervised_splits(dataset):
     if dataset =='cora':
@@ -223,13 +225,6 @@ def load_graph_data(dataset_name):
     elif dataset_name in {'yelpchi'}:
         adj, features, labels = load_yelpchi_dataset()
         
-    elif dataset_name in {'CitationFull_dblp', 'Coauthor_CS', 'Coauthor_Physics', 'Amazon_Computers', 'Amazon_Photo'}:
-        dataset, name = dataset_name.split("_")
-        adj, features, labels = load_torch_geometric_data(dataset, name)
-
-    elif dataset_name in {'Flickr', 'WikiCS'}:
-        adj, features, labels = load_torch_geometric_data(dataset_name, None)
-        
     else:
         graph_adjacency_list_file_path = os.path.join('new_data', dataset_name, 'out1_graph_edges.txt')
         graph_node_features_and_labels_file_path = os.path.join('new_data', dataset_name,
@@ -280,10 +275,7 @@ def load_graph_data(dataset_name):
         labels = np.array(
             [label for _, label in sorted(G.nodes(data='label'), key=lambda x: x[0])])
     
-    if isinstance(adj, np.ndarray):
-        np.fill_diagonal(adj, 1)
-    else:
-        adj.setdiag(1)
+    adj.setdiag(1)
     g = dgl.DGLGraph(adj)
     
     features = preprocess_features(features)
@@ -315,6 +307,109 @@ def load_graph_data(dataset_name):
     
     return g, num_labels 
 
+def separate_data(graph_list, labels, seed, fold_idx):
+    skf = StratifiedKFold(n_splits=10, shuffle = True, random_state = seed)
+    idx_list = []
+    for idx in skf.split(np.zeros(len(labels)), labels):
+        idx_list.append(idx)
+    train_idx, test_idx = idx_list[fold_idx]
+
+    train_graph_list = [graph_list[i] for i in train_idx]
+    test_graph_list = [graph_list[i] for i in test_idx]
+    train_label_list = [labels[i] for i in train_idx]
+    test_label_list = [labels[i] for i in test_idx]
+    train_label_list = torch.LongTensor(train_label_list)
+    test_label_list = torch.LongTensor(test_label_list)
+
+    return train_graph_list, test_graph_list, train_label_list, test_label_list
+
+
+def load_gc_data(dataset):
+    print('loading data')
+    graphs = []
+    glabel_dict = {}
+    nlabel_dict = {}
+    elabel_dict = {}
+    ndegree_dict = {}
+    labels = []
+    nattrs_flag = False
+    with open('dataset/%s/%s.txt' % (dataset, dataset), 'r') as f:
+        n_g = int(f.readline().strip())
+
+        for i in range(n_g):
+            grow = f.readline().strip().split()
+            n_nodes, glabel = [int(w) for w in grow]
+
+            if not glabel in glabel_dict:
+                mapped = len(glabel_dict)
+                glabel_dict[glabel] = mapped
+
+            labels.append(glabel_dict[glabel])
+
+            g = dgl.DGLGraph(([], []))
+            g.add_nodes(n_nodes)
+
+            nlabels = []  # node labels
+            nattrs = []  # node attributes if it has
+            m_edges = 0
+
+            for j in range(n_nodes):
+                nrow = f.readline().strip().split()
+
+                # handle edges and attributes(if has)
+                tmp = int(nrow[1]) + 2  # tmp == 2 + #edges
+                if tmp == len(nrow):
+                    # no node attributes
+                    nrow = [int(w) for w in nrow]
+                elif tmp > len(nrow):
+                    nrow = [int(w) for w in nrow[:tmp]]
+                    nattr = [float(w) for w in nrow[tmp:]]
+                    nattrs.append(nattr)
+                else:
+                    raise Exception('edge number is incorrect!')
+
+                if not nrow[0] in nlabel_dict:
+                    mapped = len(nlabel_dict)
+                    nlabel_dict[nrow[0]] = mapped
+
+                nlabels.append(nlabel_dict[nrow[0]])
+
+                m_edges += nrow[1]
+                g.add_edges(j, nrow[2:])
+
+
+            if nattrs != []:
+                nattrs = np.stack(nattrs)
+                g.ndata['attr'] = backend.tensor(nattrs, backend.float32)
+                nattrs_flag = True
+
+            g.ndata['label'] = backend.tensor(nlabels)
+
+            assert g.number_of_nodes() == n_nodes
+
+
+            graphs.append(g)
+
+    #labels = F.tensor(labels)
+    if not nattrs_flag:
+        nlabel_set = set([])
+        for g in graphs:
+            nlabel_set = nlabel_set.union(set([backend.as_scalar(nl) for nl in g.ndata['label']]))
+        nlabel_set = list(nlabel_set)
+        is_label_valid = all([label in nlabel_dict for label in nlabel_set])
+        if is_label_valid and len(nlabel_set) == np.max(nlabel_set) + 1 and np.min(nlabel_set) == 0:
+            label2idx = nlabel_dict
+        else:
+            label2idx = {
+                nlabel_set[i]: i
+                for i in range(len(nlabel_set))
+            }
+        for g in graphs:
+            attr = np.zeros((g.number_of_nodes(), len(label2idx)))
+            attr[range(g.number_of_nodes()), [label2idx[nl]
+                                              for nl in backend.asnumpy(g.ndata['label']).tolist()]] = 1
+            g.ndata['attr'] = backend.tensor(attr, backend.float32)
+    return graphs, labels, len(nlabel_dict)
 
 def load_data(dataset_str):
     """
@@ -381,17 +476,17 @@ def load_torch_geometric_data(dataset, name):
     edge = data[0].edge_index
     if contains_self_loops(edge):
         edge = remove_self_loops(edge)[0]
-        #print("Original data contains self-loop, it is now removed")
+        print("Original data contains self-loop, it is now removed")
 
     adj = to_dense_adj(edge)[0].numpy()
 
-    #print("Nodes: %d, edges: %d, features: %d, classes: %d. \n"%(len(adj[0]), len(edge[0])/2, len(data[0].x[0]), len(np.unique(data[0].y))))
+    print("Nodes: %d, edges: %d, features: %d, classes: %d. \n"%(len(adj[0]), len(edge[0])/2, len(data[0].x[0]), len(np.unique(data[0].y))))
 
-    #mask = np.transpose(adj) != adj
-    #col_sum = adj.sum(axis=0)
-    #print("Check adjacency matrix is sysmetric: %r"%(mask.sum().item() == 0))
-    #print("Chenck the number of isolated nodes: %d"%((col_sum == 0).sum().item()))
-    #print("Node degree Max: %d, Mean: %.4f, SD: %.4f"%(col_sum.max(), col_sum.mean(), col_sum.std()))
+    mask = np.transpose(adj) != adj
+    col_sum = adj.sum(axis=0)
+    print("Check adjacency matrix is sysmetric: %r"%(mask.sum().item() == 0))
+    print("Chenck the number of isolated nodes: %d"%((col_sum == 0).sum().item()))
+    print("Node degree Max: %d, Mean: %.4f, SD: %.4f"%(col_sum.max(), col_sum.mean(), col_sum.std()))
 
     return adj, data[0].x.numpy(), data[0].y.numpy()
 
@@ -666,7 +761,8 @@ dataset_drive_url = {
     'yelp-chi': '1fAXtTVQS4CfEk4asqrFw9EPmlUPGbGtJ', 
 }
 
-
+    
+    
 def pre_aggregate(feats, edge_dict):
     trans_feats = feats.copy()
     for i in range(feats.shape[0]):
