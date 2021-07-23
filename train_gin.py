@@ -158,7 +158,7 @@ def main():
 
     lr = [0.05, 0.01,0.002]#,0.01,
     weight_decay = [1e-4,5e-4,5e-5, 5e-3] #5e-5,1e-4,5e-4,1e-3,5e-3
-    dropout = [0.1, 0.2, 0.3]#, 0.4, 0.5 ,0.6, 0.7, 0.8, 0.9]
+    dropout = [0.1, 0.2, 0.3, 0.4, 0.5 ,0.6, 0.7, 0.8, 0.9]
     for args.lr, args.dropout in itertools.product(lr, dropout):
         result = np.zeros(10)
         t_total = time.time()
@@ -205,7 +205,7 @@ def main():
             if args.cuda: torch.cuda.empty_cache()
         five_epochtime = time.time() - t_total
         print("Total time elapsed: {:.4f}s, Total Epoch: {:.4f}".format(five_epochtime, num_epoch))
-        print("learning rate %.4f, weight decay %.6f, dropout %.4f, Test Result: %.4f"%(args.lr, args.weight_decay, args.dropout, np.mean(result)))
+        print("learning rate %.4f, weight decay %.6f, dropout %.4f, Test Result: %.4f"%(args.lr, 0, args.dropout, np.mean(result)))
         if np.mean(result)>best_result:
                 best_result = np.mean(result)
                 best_std = np.std(result)
