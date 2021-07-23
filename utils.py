@@ -346,7 +346,8 @@ def load_gc_data(dataset):
 
             labels.append(glabel_dict[glabel])
 
-            g = dgl.DGLGraph(([], []))
+            #g = dgl.DGLGraph(([], []))
+            g = dgl.DGLGraph()
             g.add_nodes(n_nodes)
 
             nlabels = []  # node labels
