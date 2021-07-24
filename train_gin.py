@@ -126,7 +126,10 @@ def pass_data_iteratively(model, graphs, minibatch_size = 32):
         if len(sampled_idx) == 0:
             continue
         sampled_graphs = [graphs[j] for j in sampled_idx]
-        feat = [graph.ndata['attr'] for graph in sampled_graphs]
+        if args.cuda:
+            feat = [graph.ndata['attr'].cuda() for graph in sampled_graphs]
+        else:
+            feat = [graph.ndata['attr'] for graph in sampled_graphs]
         #output.append(model([graphs[j] for j in sampled_idx]).detach())
         output.append(model(sampled_graphs, feat).detach())
     return torch.cat(output, 0)
