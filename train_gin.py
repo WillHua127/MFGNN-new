@@ -137,7 +137,10 @@ def pass_data_iteratively(model, graphs, minibatch_size = 32):
     
 def test(args, model, train_graphs, test_graphs, train_labels, test_labels, epoch):
     model.eval()
-
+    if args.cuda:
+        train_labels = train_labels.cuda()
+        test_labels = test_labels.cuda()
+    
     output = pass_data_iteratively(model, train_graphs)
     pred = output.max(1, keepdim=True)[1]
     correct = pred.eq(train_labels.view_as(pred)).sum().cpu().item()
