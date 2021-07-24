@@ -83,13 +83,16 @@ def train(args, model, train_graphs, train_labels, optimizer, epoch):
         selected_idx = np.random.permutation(len(train_graphs))[:args.batch_size]
 
         batch_graph = [train_graphs[idx] for idx in selected_idx]
-        feat = [graph.ndata['attr'] for graph in batch_graph]
+        if args.cuda:
+            feat = [graph.ndata['attr'].cuda() for graph in batch_graph]
+        else:
+            feat = [graph.ndata['attr'] for graph in batch_graph]
         #print(batch_graph[0], feat[0].shape)
         #feat = torch.cat([graph.ndata['attr'] for graph in batch_graph],0)
         label = torch.LongTensor([train_labels[idx] for idx in selected_idx])
         if args.cuda:
             label = label.cuda()
-            feat = [fea.cuda() for fea in feat]
+            #feat = [fea.cuda() for fea in feat]
         
         output = model(batch_graph, feat)
 
