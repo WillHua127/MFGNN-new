@@ -287,7 +287,8 @@ class GraphCNN(nn.Module):
         #hidden_rep_list = [torch.cat(X_list, 0)]
         #features = torch.hstack([X_list[idx], torch.ones([X_list[idx].shape[0],1])])
         #hidden_rep_list = [torch.cat([self.cppools[0](X_list[idx]) for idx in range(len(batch_graph))],0)]
-        hidden_rep_list = [torch.cat([self.cppools[0](torch.hstack([X_list[idx], torch.ones([X_list[idx].shape[0],1])])) for idx in range(len(batch_graph))],0)]
+        hidden_rep_list = [torch.cat([self.cppools[0](torch.cat((X_list[idx], torch.ones([X_list[idx].shape[0],1])), 1)) for idx in range(len(batch_graph))],0)]
+        #hidden_rep_list = [torch.cat([self.cppools[0](torch.hstack([X_list[idx], torch.ones([X_list[idx].shape[0],1])])) for idx in range(len(batch_graph))],0)]
         #hidden_rep_list = [F.dropout(torch.cat([self.cppools[0](torch.hstack([X_list[idx], torch.ones([X_list[idx].shape[0],1])])) for idx in range(len(batch_graph))],0), self.final_dropout, training = self.training)]
         #h = X_concat
         h_list = X_list
@@ -308,7 +309,8 @@ class GraphCNN(nn.Module):
             
             #hidden_rep_list.append(torch.cat([self.cppools[layer+1](h_list[idx]) for idx in range(len(batch_graph))],0))
         #hidden_rep_list.append(F.dropout(torch.cat([self.cppools[1](torch.hstack([h_list[idx], torch.ones([h_list[idx].shape[0],1])])) for idx in range(len(batch_graph))],0), self.final_dropout, training = self.training))
-        hidden_rep_list.append(torch.cat([self.cppools[1](torch.hstack([h_list[idx], torch.ones([h_list[idx].shape[0],1])])) for idx in range(len(batch_graph))],0))
+        #hidden_rep_list.append(torch.cat([self.cppools[1](torch.hstack([h_list[idx], torch.ones([h_list[idx].shape[0],1])])) for idx in range(len(batch_graph))],0))
+        hidden_rep_list.append(torch.cat([self.cppools[1](torch.cat((h_list[idx], torch.ones([h_list[idx].shape[0],1])), 1)) for idx in range(len(batch_graph))],0))
 
             #hidden_rep.append(h)
 
