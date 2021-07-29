@@ -167,10 +167,11 @@ def main():
 
             for epoch in range(1, args.epochs + 1):
                 num_epoch = num_epoch+1
-                scheduler.step()
+                #scheduler.step()
 
                 avg_loss = train(args, model, device, train_graphs, optimizer, epoch)
                 acc_train, acc_test = test(args, model, device, train_graphs, test_graphs, epoch)
+                scheduler.step()
 
                 if not args.filename == "":
                     with open(args.filename, 'w') as f:
