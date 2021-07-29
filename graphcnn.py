@@ -109,7 +109,7 @@ class GraphCNN(nn.Module):
                 self.cppools.append(graph_cp_pooling(input_dim+1, hidden_dim, rank_dim))
             else:
                 self.linears_prediction.append(nn.Linear(hidden_dim, output_dim))
-                self.cppools.append(graph_cp_pooling(hidden_dim+1, hidden_dim, rank_dim))
+                self.cppools.append(graph_cp_pooling(input_dim+1, hidden_dim, rank_dim))
         self.pred = nn.Linear(hidden_dim, output_dim)
 
 
@@ -291,8 +291,8 @@ class GraphCNN(nn.Module):
         else:
             #If sum or average pooling
             for idx, adj in enumerate(Adj_list):
-                #pooled_feas.append(F.relu(torch.spmm(adj, h[idx])))
-                pooled_feas.append(F.relu(self.mlps[layer](torch.spmm(adj, h[idx]))))
+                pooled_feas.append((torch.spmm(adj, h[idx])))
+                #pooled_feas.append(F.relu(self.mlps[layer](torch.spmm(adj, h[idx]))))
                 if self.neighbor_pooling_type == "average":
                     #If average pooling
                     degree = torch.spmm(adj, torch.ones((adj.shape[0], 1)).to(self.device))
