@@ -367,16 +367,16 @@ class GraphCNN(nn.Module):
         #final_rep = hidden_rep_list[0]
         #score_over_layer = F.dropout(self.pred(final_rep), self.final_dropout, training = self.training)
         #score_over_layer = self.pred(final_rep)
-        score_over_layer = F.dropout(self.linears_prediction[1](hidden_rep_list[1]), self.final_dropout, training = self.training)
+        #score_over_layer = F.dropout(self.linears_prediction[1](hidden_rep_list[1]), self.final_dropout, training = self.training)
 
-        #for layer, h in enumerate(hidden_rep_list):
+        for layer, h in enumerate(hidden_rep_list):
             #if layer == 0:
             #    pooled_h = h
             #else:
             #    pooled_h = torch.spmm(graph_pool, h)
             #pooled_h = self.cppools[layer](h)
             #print(pooled_h.shape)
-            #score_over_layer += F.dropout(self.linears_prediction[layer](h), self.final_dropout, training = self.training)
+            score_over_layer += F.dropout(self.linears_prediction[layer](h), self.final_dropout, training = self.training)
             #score_over_layer += self.linears_prediction[layer](h)
             #print(score_over_layer.shape)
 
