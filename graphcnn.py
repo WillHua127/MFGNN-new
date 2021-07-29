@@ -64,7 +64,7 @@ class GraphCNN(nn.Module):
                 self.cppools.append(graph_cp_pooling(input_dim+1, hidden_dim, rank_dim))
             else:
                 self.linears_prediction.append(nn.Linear(hidden_dim, output_dim))
-                self.cppools.append(graph_cp_pooling(input_dim+1, hidden_dim, rank_dim))
+                self.cppools.append(graph_cp_pooling(hidden_dim+1, hidden_dim, rank_dim))
         self.pred = nn.Linear(hidden_dim, output_dim)
 
 
