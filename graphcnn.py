@@ -47,13 +47,13 @@ class GraphCNN(nn.Module):
         ###List of batchnorms applied to the output of MLP (input of the final prediction linear layer)
         self.batch_norms = torch.nn.ModuleList()
 
-        #for layer in range(self.num_layers-1):
-        #    if layer == 0:
-        #        self.mlps.append(MLP(num_mlp_layers, input_dim, hidden_dim, hidden_dim))
-        #    else:
-        #        self.mlps.append(MLP(num_mlp_layers, hidden_dim, hidden_dim, hidden_dim))
+        for layer in range(self.num_layers-1):
+            if layer == 0:
+                self.mlps.append(MLP(num_mlp_layers, input_dim, hidden_dim, hidden_dim))
+            else:
+                self.mlps.append(MLP(num_mlp_layers, hidden_dim, hidden_dim, hidden_dim))
 
-        #    self.batch_norms.append(nn.BatchNorm1d(hidden_dim))
+            self.batch_norms.append(nn.BatchNorm1d(hidden_dim))
 
         #Linear function that maps the hidden representation at dofferemt layers into a prediction score
         self.linears_prediction = torch.nn.ModuleList()
@@ -247,7 +247,7 @@ class GraphCNN(nn.Module):
             #If sum or average pooling
             for idx, adj in enumerate(Adj_list):
                 #pooled_feas.append(F.relu(torch.spmm(adj, h[idx])))
-                pooled_feas.append((torch.spmm(adj, h[idx])))
+                pooled_feas.append(F.relu(self.mlps[layer](torch.spmm(adj, h[idx]))))
                 if self.neighbor_pooling_type == "average":
                     #If average pooling
                     degree = torch.spmm(adj, torch.ones((adj.shape[0], 1)).to(self.device))
