@@ -26,7 +26,7 @@ class FALayer(nn.Module):
     def forward(self, h):
         self.g.ndata['h'] = h
         self.g.apply_edges(self.edge_applying)
-        self.g.update_all(fn.u_mul_e('h', 'e', '_'), fn.sum('_', 'z'))
+        self.g.update_all(fn.u_mul_e('h', 'e', 'u'), fn.sum('u', 'z'))
 
         return self.g.ndata['z']
 
