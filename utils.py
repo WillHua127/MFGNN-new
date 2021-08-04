@@ -301,7 +301,7 @@ def load_graph_data(dataset_name):
     g.ndata['labels'] = labels
     
     degs = g.in_degrees().float()
-    norm = torch.pow(degs, -1)
+    norm = torch.pow(deg, -0.5)
     norm[torch.isinf(norm)] = 0
     g.ndata['norm'] = norm.unsqueeze(1)
     
