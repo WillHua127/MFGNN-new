@@ -50,15 +50,23 @@ class MLP(nn.Module):
             return self.linears[self.num_layers - 1](h)
 
 class graph_cp_pooling(nn.Module):
-    def __init__(self, in_fea, hidden, rank):
+    def __init__(self, in_fea, hidden, rank, dropout=0.6):
         super(graph_cp_pooling, self).__init__()
-        self.W = nn.Linear(in_fea, rank)
-        self.V = nn.Linear(rank, hidden)
+        self.W = nn.Parameter(torch.FloatTensor(in_fea, rank))
+        self.V = nn.Parameter(torch.FloatTensor(hidden, rank))
+        self.dropout = dropout
+        self.reset_parameters()
+       
+    def reset_parameters(self):
+        nn.init.xavier_uniform_(self.W)
+        nn.init.xavier_uniform_(self.V)
 
     def forward(self, x):
-        fea = self.W(x)
+        fea = torch.mm(x, self.W)
+        #fea = F.dropout(fea, self.dropout, training = self.training)
+        #fea = F.relu(fea)
         fea = torch.prod(fea,0).unsqueeze(0)
-        readout = self.V(fea)
+        readout = torch.mm(fea, self.W.T)
         return readout
 
 class GraphCNN(nn.Module):
@@ -70,7 +78,7 @@ class GraphCNN(nn.Module):
             hidden_dim: dimensionality of hidden units at ALL layers
             output_dim: number of classes for prediction
             final_dropout: dropout ratio on the final linear layer
-            learn_eps: If True, learn epsilon to distinguish center nodes from neighboring nodes. If False, aggregate neighbors and center nodes altogether. 
+            learn_eps: If True, learn epsilon to distinguish center nodes from neighboring nodes. If False, aggregate neighbors and center nodes altogether.
             neighbor_pooling_type: how to aggregate neighbors (mean, average, or max)
             graph_pooling_type: how to aggregate entire nodes in a graph (mean, average)
             device: which device to use
@@ -90,7 +98,7 @@ class GraphCNN(nn.Module):
         self.mlps = torch.nn.ModuleList()
 
         ###List of batchnorms applied to the output of MLP (input of the final prediction linear layer)
-        self.batch_norms = torch.nn.ModuleList()
+        #self.batch_norms = torch.nn.ModuleList()
 
         for layer in range(self.num_layers-1):
             if layer == 0:
@@ -98,19 +106,19 @@ class GraphCNN(nn.Module):
             else:
                 self.mlps.append(MLP(num_mlp_layers, hidden_dim, hidden_dim, hidden_dim))
 
-            self.batch_norms.append(nn.BatchNorm1d(hidden_dim))
+            #self.batch_norms.append(nn.BatchNorm1d(hidden_dim))
 
         #Linear function that maps the hidden representation at dofferemt layers into a prediction score
         self.linears_prediction = torch.nn.ModuleList()
         self.cppools = torch.nn.ModuleList()
         for layer in range(num_layers):
             if layer == 0:
-                self.linears_prediction.append(nn.Linear(hidden_dim, output_dim))
+                self.linears_prediction.append(nn.Linear(input_dim+1, output_dim))
                 self.cppools.append(graph_cp_pooling(input_dim+1, hidden_dim, rank_dim))
             else:
-                self.linears_prediction.append(nn.Linear(hidden_dim, output_dim))
-                self.cppools.append(graph_cp_pooling(input_dim+1, hidden_dim, rank_dim))
-        self.pred = nn.Linear(2*hidden_dim, output_dim)
+                self.linears_prediction.append(nn.Linear(hidden_dim+1, output_dim))
+                self.cppools.append(graph_cp_pooling(hidden_dim +1, hidden_dim, rank_dim))
+        #self.pred = nn.Linear(2*hidden_dim, output_dim)
 
 
     def __preprocess_neighbors_maxpool(self, batch_graph):
@@ -140,8 +148,8 @@ class GraphCNN(nn.Module):
             padded_neighbor_list.extend(padded_neighbors)
 
         return torch.LongTensor(padded_neighbor_list)
-    
-    
+   
+   
     def __preprocess_neighbors_list_sumavepool(self, batch_graph):
         ###create block diagonal sparse matrix
 
@@ -198,7 +206,7 @@ class GraphCNN(nn.Module):
 
     def __preprocess_graphpool(self, batch_graph):
         ###create sum or average pooling sparse matrix over entire nodes in each graph (num graphs x num nodes)
-        
+       
         start_idx = [0]
 
         #compute the padded neighbor list
@@ -211,7 +219,7 @@ class GraphCNN(nn.Module):
             ###average pooling
             if self.graph_pooling_type == "average":
                 elem.extend([1./len(graph.g)]*len(graph.g))
-            
+           
             else:
             ###sum pooling
                 elem.extend([1]*len(graph.g))
@@ -220,7 +228,7 @@ class GraphCNN(nn.Module):
         elem = torch.FloatTensor(elem)
         idx = torch.LongTensor(idx).transpose(0,1)
         graph_pool = torch.sparse.FloatTensor(idx, elem, torch.Size([len(batch_graph), start_idx[-1]]))
-        
+       
         return graph_pool.to(self.device)
 
     def maxpool(self, h, padded_neighbor_list):
@@ -233,7 +241,7 @@ class GraphCNN(nn.Module):
 
 
     def next_layer_eps(self, h, layer, padded_neighbor_list = None, Adj_block = None):
-        ###pooling neighboring nodes and center nodes separately by epsilon reweighting. 
+        ###pooling neighboring nodes and center nodes separately by epsilon reweighting.
 
         if self.neighbor_pooling_type == "max":
             ##If max pooling
@@ -258,7 +266,7 @@ class GraphCNN(nn.Module):
 
     def next_layer(self, h, layer, padded_neighbor_list = None, Adj_block = None):
         ###pooling neighboring nodes and center nodes altogether  
-            
+           
         if self.neighbor_pooling_type == "max":
             ##If max pooling
             pooled = self.maxpool(h, padded_neighbor_list)
@@ -270,7 +278,7 @@ class GraphCNN(nn.Module):
                 degree = torch.spmm(Adj_block, torch.ones((Adj_block.shape[0], 1)).to(self.device))
                 pooled = pooled/degree
 
-        #representation of neighboring and center nodes 
+        #representation of neighboring and center nodes
         pooled_rep = self.mlps[layer](pooled)
 
         h = self.batch_norms[layer](pooled_rep)
@@ -278,11 +286,11 @@ class GraphCNN(nn.Module):
         #non-linearity
         h = F.relu(h)
         return h
-    
-    
+   
+   
     def next_layer_list(self, h, layer, padded_neighbor_list = None, Adj_list = None):
         ###pooling neighboring nodes and center nodes altogether
-        
+       
         pooled_feas = []    
         pooled_reps = []
         if self.neighbor_pooling_type == "max":
@@ -291,27 +299,13 @@ class GraphCNN(nn.Module):
         else:
             #If sum or average pooling
             for idx, adj in enumerate(Adj_list):
-                pooled_feas.append((torch.spmm(adj, h[idx])))
-                #pooled_feas.append(F.relu(self.mlps[layer](torch.spmm(adj, h[idx]))))
+                #pooled_feas.append(F.relu(torch.spmm(adj, h[idx])))
+                pooled_feas.append(F.relu(self.mlps[layer](torch.spmm(adj, h[idx]))))
+                #pooled_feas.append(F.dropout(torch.spmm(adj, h[idx]), self.dropout, training = self.training))
                 if self.neighbor_pooling_type == "average":
                     #If average pooling
                     degree = torch.spmm(adj, torch.ones((adj.shape[0], 1)).to(self.device))
                     pooled_feas[idx] = pooled_feas[idx]/degree
-                #pooled_reps.append(F.relu(self.batch_norms[layer](self.mlps[layer](pooled_feas[idx]))))
-                #pooled_reps.append(F.relu(self.mlps[layer](pooled_feas[idx])))
-            #pooled = torch.spmm(Adj_block, h)
-        
-            
-                
-        #for fea in feas:
-        #representation of neighboring and center nodes 
-        #pooled_rep = self.mlps[layer](pooled)
-
-        #h = self.batch_norms[layer](pooled_rep)
-
-        #non-linearity
-        #h = F.relu(h)
-        #return pooled_reps
         return pooled_feas
 
 
@@ -332,13 +326,13 @@ class GraphCNN(nn.Module):
         #hidden_rep_list = [torch.cat(X_list, 0)]
         #features = torch.hstack([X_list[idx], torch.ones([X_list[idx].shape[0],1])])
         #hidden_rep_list = [torch.cat([self.cppools[0](X_list[idx]) for idx in range(len(batch_graph))],0)]
-        hidden_rep_list = [torch.cat([self.cppools[0](torch.cat((X_list[idx], torch.ones([X_list[idx].shape[0],1]).to(self.device)), 1)) for idx in range(len(batch_graph))],0)]
-        #hidden_rep_list = [torch.cat([self.cppools[0](torch.hstack([X_list[idx], torch.ones([X_list[idx].shape[0],1])])) for idx in range(len(batch_graph))],0)]
+        #hidden_rep_list = [torch.cat([self.cppools[0](torch.cat((X_list[idx], torch.ones([X_list[idx].shape[0],1])), 1)) for idx in range(len(batch_graph))],0)]
+        hidden_rep_list = [(torch.cat([self.cppools[0](torch.cat((X_list[idx], torch.ones([X_list[idx].shape[0],1])), 1)) for idx in range(len(batch_graph))],0))]
         #hidden_rep_list = [F.dropout(torch.cat([self.cppools[0](torch.hstack([X_list[idx], torch.ones([X_list[idx].shape[0],1])])) for idx in range(len(batch_graph))],0), self.final_dropout, training = self.training)]
         #h = X_concat
         h_list = X_list
 
-        #for layer in range(self.num_layers-1):
+        for layer in range(self.num_layers-1):
         #    if self.neighbor_pooling_type == "max" and self.learn_eps:
         #        h = self.next_layer_eps(h, layer, padded_neighbor_list = padded_neighbor_list)
         #    elif not self.neighbor_pooling_type == "max" and self.learn_eps:
@@ -347,36 +341,36 @@ class GraphCNN(nn.Module):
         #        h = self.next_layer(h, layer, padded_neighbor_list = padded_neighbor_list)
         #    elif not self.neighbor_pooling_type == "max" and not self.learn_eps:
                 #h = self.next_layer(h, layer, Adj_block = Adj_block)
-        h_list = self.next_layer_list(h_list, 0, Adj_list = adj_list)
-                
+            h_list = self.next_layer_list(h_list, layer, Adj_list = adj_list)
+               
         #new_h_list = [torch.hstack([X_list[idx],h_list[idx]]) for idx in range(len(batch_graph))]
         #hidden_rep_list.append(F.dropout(torch.cat([self.cppools[1](torch.hstack([new_h_list[idx], torch.ones([h_list[idx].shape[0],1])])) for idx in range(len(batch_graph))],0), self.final_dropout, training = self.training))
-            
+           
             #hidden_rep_list.append(torch.cat([self.cppools[layer+1](h_list[idx]) for idx in range(len(batch_graph))],0))
-        #hidden_rep_list.append(F.dropout(torch.cat([self.cppools[1](torch.hstack([h_list[idx], torch.ones([h_list[idx].shape[0],1])])) for idx in range(len(batch_graph))],0), self.final_dropout, training = self.training))
-        #hidden_rep_list.append(torch.cat([self.cppools[1](torch.hstack([h_list[idx], torch.ones([h_list[idx].shape[0],1])])) for idx in range(len(batch_graph))],0))
-        hidden_rep_list.append(torch.cat([self.cppools[1](torch.cat((h_list[idx], torch.ones([h_list[idx].shape[0],1]).to(self.device)), 1)) for idx in range(len(batch_graph))],0))
+            #hidden_rep_list.append(F.dropout(torch.cat([self.cppools[layer+1](torch.hstack([h_list[idx], torch.ones([h_list[idx].shape[0],1])])) for idx in range(len(batch_graph))],0), self.final_dropout, training = self.training))
+            hidden_rep_list.append(torch.cat([self.cppools[layer+1](torch.cat((h_list[idx], torch.ones([h_list[idx].shape[0],1])), 1)) for idx in range(len(batch_graph))],0))
 
             #hidden_rep.append(h)
 
         score_over_layer = 0
-    
+   
         #perform pooling over all nodes in each graph in every layer
         #for layer, h in enumerate(hidden_rep):
-        final_rep = torch.cat(hidden_rep_list, 1)
+        #final_rep = torch.cat(hidden_rep_list, 1)
         #final_rep = hidden_rep_list[0]
         #score_over_layer = F.dropout(self.pred(final_rep), self.final_dropout, training = self.training)
-        score_over_layer = self.pred(final_rep)
-        #score_over_layer = F.dropout(self.linears_prediction[1](hidden_rep_list[1]), self.final_dropout, training = self.training)
+        #score_over_layer = self.pred(final_rep)
+        #score_over_layer += F.dropout(self.linears_prediction[1](hidden_rep_list[1]), self.final_dropout, training = self.training)
+        #score_over_layer += self.linears_prediction[1](hidden_rep_list[1])
 
-        #for layer, h in enumerate(hidden_rep_list):
+        for layer, h in enumerate(hidden_rep_list):
             #if layer == 0:
             #    pooled_h = h
             #else:
-            #    pooled_h = torch.spmm(graph_pool, h)
+            #   pooled_h = torch.spmm(graph_pool, h)
             #pooled_h = self.cppools[layer](h)
             #print(pooled_h.shape)
-            #score_over_layer += F.dropout(self.linears_prediction[layer](h), self.final_dropout, training = self.training)
+            score_over_layer += F.dropout(self.linears_prediction[layer](h), self.final_dropout, training = self.training)
             #score_over_layer += self.linears_prediction[layer](h)
             #print(score_over_layer.shape)
 
