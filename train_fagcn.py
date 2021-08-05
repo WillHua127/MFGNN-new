@@ -62,7 +62,8 @@ if args.cuda:
 g,n_classes = load_graph_data(args.dataset_name)
 labels = g.ndata.pop('labels')
 features = g.ndata.pop('features')
-norm = g.ndata.pop('norm')
+deg = g.in_degrees().float().clamp(min=1)
+norm = torch.pow(deg, -0.5)
 
     
 num_class = labels.max()+1
