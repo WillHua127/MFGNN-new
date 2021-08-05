@@ -188,7 +188,7 @@ def main():
                     curr_step = 0
                 else:
                     curr_step += 1
-                    if curr_step >= patience:
+                    if curr_step >= patience or avg_loss==np.inf:
                         break
 
                 #print(model.eps)
