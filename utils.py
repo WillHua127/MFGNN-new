@@ -296,7 +296,7 @@ def load_graph_data(dataset_name):
     g = dgl.DGLGraph(adj)
     
     features = preprocess_features(features)
-    features = np.hstack([features, np.ones([features.shape[0],1])])
+    #features = np.hstack([features, np.ones([features.shape[0],1])])
     
     
     num_labels = len(np.unique(labels))
