@@ -25,6 +25,23 @@ from dgl import backend
 sys.setrecursionlimit(99999)
 
     
+def load_fixed_splits(dataset, sub_dataset):
+    name = dataset
+    if sub_dataset:
+        name += f'-{sub_dataset}'
+
+    if not os.path.exists(f'./data/splits/{name}-splits.npy'):
+        assert dataset in splits_drive_url.keys()
+        gdd.download_file_from_google_drive(
+            file_id=splits_drive_url[dataset], \
+            dest_path=f'./data/splits/{name}-splits.npy', showsize=True) 
+    
+    splits_lst = np.load(f'./data/splits/{name}-splits.npy', allow_pickle=True)
+    for i in range(len(splits_lst)):
+        for key in splits_lst[i]:
+            if not torch.is_tensor(splits_lst[i][key]):
+                splits_lst[i][key] = torch.as_tensor(splits_lst[i][key])
+    return splits_lst
 
 def encode_onehot(labels):
     classes = set(labels)
