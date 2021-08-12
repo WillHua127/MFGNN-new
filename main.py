@@ -145,7 +145,7 @@ def main():
 
     #lr = [0.05, 0.01,0.002]#,0.01,
     #weight_decay = [1e-4]#,5e-4,5e-5, 5e-3] #5e-5,1e-4,5e-4,1e-3,5e-3
-    dropout = [0.1, 0.2, 0.3, 0.4, 0.5 ,0.6, 0.7, 0.8, 0.9]
+    dropout = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5 ,0.6, 0.7, 0.8, 0.9]
     #for args.lr, args.dropout in itertools.product(lr, dropout):
     for args.dropout in itertools.product(dropout):
         result = np.zeros(10)
@@ -181,7 +181,7 @@ def main():
                 print("")
 
                 if acc_train >= tacc_mx or avg_loss <= tlss_mn:
-                    if acc_train >= tacc_mx:# and avg_loss <= tlss_mn:
+                    if acc_train >= tacc_mx and avg_loss <= tlss_mn:
                         best_test = acc_test
                         best_training_loss = avg_loss
                     vacc_mx = np.max((acc_train, tacc_mx))
