@@ -113,7 +113,7 @@ def main():
                         help='final layer dropout (default: 0.5)')
     parser.add_argument('--graph_pooling_type', type=str, default="sum", choices=["sum", "average"],
                         help='Pooling for over nodes in a graph: sum or average')
-    parser.add_argument('--neighbor_pooling_type', type=str, default="average", choices=["sum", "average", "max"],
+    parser.add_argument('--neighbor_pooling_type', type=str, default="sum", choices=["sum", "average", "max"],
                         help='Pooling for over neighboring nodes: sum, average or max')
     parser.add_argument('--learn_eps', action="store_true",
                                         help='Whether to learn the epsilon weighting for the center nodes. Does not affect training accuracy though.')
