@@ -189,7 +189,7 @@ def main():
                     curr_step = 0
                 else:
                     curr_step += 1
-                    if curr_step >= patience or torch.isnan(avg_loss):
+                    if curr_step >= patience or np.isnan(avg_loss):
                         break
 
                 #print(model.eps)
