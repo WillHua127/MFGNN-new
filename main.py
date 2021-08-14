@@ -109,7 +109,7 @@ def main():
                         help='number of hidden units (default: 64)')
     parser.add_argument('--rank', type=int, default=64,
                         help='number of hidden units (default: 64)')
-    parser.add_argument('--final_dropout', type=float, default=0.5,
+    parser.add_argument('--dropout', type=float, default=0.5,
                         help='final layer dropout (default: 0.5)')
     parser.add_argument('--graph_pooling_type', type=str, default="sum", choices=["sum", "average"],
                         help='Pooling for over nodes in a graph: sum or average')
@@ -143,71 +143,72 @@ def main():
     best_time = 0
     best_epoch = 0
 
-    lr = [0.05]#, 0.01,0.002]#,0.01,
+    #lr = [0.05]#, 0.01,0.002]#,0.01,
     #weight_decay = [1e-4]#,5e-4,5e-5, 5e-3] #5e-5,1e-4,5e-4,1e-3,5e-3
-    dropout = [0.2]#, 0.1, 0.2, 0.3, 0.4, 0.5 ,0.6, 0.7, 0.8, 0.9]
+    #dropout = [0.2]#, 0.1, 0.2, 0.3, 0.4, 0.5 ,0.6, 0.7, 0.8, 0.9]
     #for args.lr, args.dropout in itertools.product(lr, dropout):
-    for args.lr, args.dropout in itertools.product(lr, dropout):
-        result = np.zeros(10)
-        t_total = time.time()
-        num_epoch = 0
-        for idx in range(10):
+    #for args.lr, args.dropout in itertools.product(lr, dropout):
+    result = np.zeros(10)
+    t_total = time.time()
+    num_epoch = 0
+    for idx in range(10):
 
-            ##10-fold cross validation. Conduct an experiment on the fold specified by args.fold_idx.
-            train_graphs, test_graphs = separate_data(graphs, args.seed, idx)
+        ##10-fold cross validation. Conduct an experiment on the fold specified by args.fold_idx.
+        train_graphs, test_graphs = separate_data(graphs, args.seed, idx)
 
-            model = GraphCNN(args.num_layers, args.num_mlp_layers, train_graphs[0].node_features.shape[1], args.hidden_dim, args.rank, num_classes, args.final_dropout, args.learn_eps, args.graph_pooling_type, args.neighbor_pooling_type, device).to(device)
+        model = GraphCNN(args.num_layers, args.num_mlp_layers, train_graphs[0].node_features.shape[1], args.hidden_dim, args.rank, num_classes, args.dropout, args.learn_eps, args.graph_pooling_type, args.neighbor_pooling_type, device).to(device)
 
-            optimizer = optim.Adam(model.parameters(), lr=args.lr)
-            scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
-            tlss_mn = np.inf
-            tacc_mx = 0.0
-            curr_step = 0
-            best_test = 0
+        optimizer = optim.Adam(model.parameters(), lr=args.lr)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
+        tlss_mn = np.inf
+        tacc_mx = 0.0
+        curr_step = 0
+        best_test = 0
 
 
-            for epoch in range(1, args.epochs + 1):
-                num_epoch = num_epoch+1
-                #scheduler.step()
+        for epoch in range(1, args.epochs + 1):
+            num_epoch = num_epoch+1
+            #scheduler.step()
 
-                avg_loss = train(args, model, device, train_graphs, optimizer, epoch)
-                acc_train, acc_test = test(args, model, device, train_graphs, test_graphs, epoch)
-                scheduler.step()
+            avg_loss = train(args, model, device, train_graphs, optimizer, epoch)
+            acc_train, acc_test = test(args, model, device, train_graphs, test_graphs, epoch)
+            scheduler.step()
 
-                if not args.filename == "":
-                    with open(args.filename, 'w') as f:
-                        f.write("%f %f %f" % (avg_loss, acc_train, acc_test))
-                        f.write("\n")
-                print("")
+            if not args.filename == "":
+                with open(args.filename, 'w') as f:
+                    f.write("%f %f %f" % (avg_loss, acc_train, acc_test))
+                    f.write("\n")
+            print("")
 
-                if acc_train >= tacc_mx or avg_loss <= tlss_mn:
-                    if acc_train >= tacc_mx and avg_loss <= tlss_mn:
-                        best_test = acc_test
-                        best_training_loss = avg_loss
-                    tacc_mx = np.max((acc_train, tacc_mx))
-                    tlss_mn = np.min((avg_loss, tlss_mn))
-                    curr_step = 0
-                else:
-                    curr_step += 1
-                    if curr_step >= patience or np.isnan(avg_loss):
-                        break
+            if acc_train >= tacc_mx or avg_loss <= tlss_mn:
+                if acc_train >= tacc_mx and avg_loss <= tlss_mn:
+                    best_test = acc_test
+                    best_training_loss = avg_loss
+                tacc_mx = np.max((acc_train, tacc_mx))
+                tlss_mn = np.min((avg_loss, tlss_mn))
+                curr_step = 0
+            else:
+                curr_step += 1
+                if curr_step >= patience or np.isnan(avg_loss):
+                    break
 
-                #print(model.eps)
-            result[idx] = best_test
-            del model, optimizer
-            if torch.cuda.is_available(): torch.cuda.empty_cache()
-        five_epochtime = time.time() - t_total
-        print("Total time elapsed: {:.4f}s, Total Epoch: {:.4f}".format(five_epochtime, num_epoch))
-        print("learning rate %.4f, weight decay %.6f, dropout %.4f, Test Result: %.4f"%(args.lr, 0, args.dropout, np.mean(result)))
-        if np.mean(result)>best_result:
-                best_result = np.mean(result)
-                best_std = np.std(result)
-                best_dropout = args.dropout
-                best_lr = args.lr
-                best_time = five_epochtime
-                best_epoch = num_epoch
+            #print(model.eps)
+        print(best_test, args.lr, args.dropout)
+        result[idx] = best_test
+        del model, optimizer
+        if torch.cuda.is_available(): torch.cuda.empty_cache()
+    #five_epochtime = time.time() - t_total
+    #print("Total time elapsed: {:.4f}s, Total Epoch: {:.4f}".format(five_epochtime, num_epoch))
+    print("learning rate %.4f, weight decay %.6f, dropout %.4f, Test Result: %.4f"%(args.lr, 0, args.dropout, np.mean(result)))
+        #if np.mean(result)>best_result:
+        #        best_result = np.mean(result)
+        #        best_std = np.std(result)
+        #        best_dropout = args.dropout
+        #        best_lr = args.lr
+        #        best_time = five_epochtime
+        #        best_epoch = num_epoch
 
-    print("Best learning rate %.4f, Best weight decay %.6f, dropout %.4f, Test Mean: %.4f, Test Std: %.4f, Time/Run: %.4f, Time/Epoch: %.4f"%(best_lr, 0, best_dropout, best_result, best_std, best_time/10, best_time/best_epoch))
+    #print("Best learning rate %.4f, Best weight decay %.6f, dropout %.4f, Test Mean: %.4f, Test Std: %.4f, Time/Run: %.4f, Time/Epoch: %.4f"%(best_lr, 0, best_dropout, best_result, best_std, best_time/10, best_time/best_epoch))
     
     
 
