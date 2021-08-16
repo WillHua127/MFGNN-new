@@ -45,7 +45,7 @@ parser.add_argument('--sub_dataname', type=str,
 parser.add_argument('--dropout', type=float, default=0.1,
                     help='Dropout rate (1 - keep probability).')
 parser.add_argument('--task', type=str,
-                    help='semi-supervised learning or supervised learning.', default = 'ssl')
+                    help='semi-supervised learning or supervised learning.', default = 'sl')
 
 
 args = parser.parse_args()
