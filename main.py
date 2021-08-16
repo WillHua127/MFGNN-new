@@ -93,7 +93,7 @@ def main():
                         help='input batch size for training (default: 32)')
     parser.add_argument('--iters_per_epoch', type=int, default=50,
                         help='number of iterations per each epoch (default: 50)')
-    parser.add_argument('--epochs', type=int, default=1000,
+    parser.add_argument('--epochs', type=int, default=350,
                         help='number of epochs to train (default: 350)')
     parser.add_argument('--lr', type=float, default=0.05,
                         help='learning rate (default: 0.01)')
@@ -180,17 +180,18 @@ def main():
                     f.write("\n")
             print("")
 
-            if acc_train >= tacc_mx or avg_loss <= tlss_mn:
-                if acc_train >= tacc_mx and avg_loss <= tlss_mn:
-                    best_test = acc_test
-                    best_training_loss = avg_loss
-                tacc_mx = np.max((acc_train, tacc_mx))
-                tlss_mn = np.min((avg_loss, tlss_mn))
-                curr_step = 0
-            else:
-                curr_step += 1
-                if curr_step >= patience or np.isnan(avg_loss):
-                    break
+            #if acc_train >= tacc_mx or avg_loss <= tlss_mn:
+            #    if acc_train >= tacc_mx and avg_loss <= tlss_mn:
+            #        best_test = acc_test
+            #        best_training_loss = avg_loss
+            #    tacc_mx = np.max((acc_train, tacc_mx))
+            #    tlss_mn = np.min((avg_loss, tlss_mn))
+            #    curr_step = 0
+            #else:
+            #    curr_step += 1
+            #    if curr_step >= patience or np.isnan(avg_loss):
+            #        break
+            best_test = acc_test
 
             #print(model.eps)
         print(best_test, args.lr, args.dropout)
