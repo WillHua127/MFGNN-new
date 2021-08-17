@@ -159,10 +159,10 @@ def main():
     #dropout = [0.2]#, 0.1, 0.2, 0.3, 0.4, 0.5 ,0.6, 0.7, 0.8, 0.9]
     #for args.lr, args.dropout in itertools.product(lr, dropout):
     #for args.lr, args.dropout in itertools.product(lr, dropout):
-    result = np.zeros(10)
+    result = np.zeros(20)
     t_total = time.time()
     num_epoch = 0
-    for idx in range(10):
+    for idx in range(20):
 
         ##10-fold cross validation. Conduct an experiment on the fold specified by args.fold_idx.
         #train_graphs, test_graphs = separate_data(graphs, args.seed, idx)
@@ -224,7 +224,7 @@ def main():
         if torch.cuda.is_available(): torch.cuda.empty_cache()
     #five_epochtime = time.time() - t_total
     #print("Total time elapsed: {:.4f}s, Total Epoch: {:.4f}".format(five_epochtime, num_epoch))
-    print("learning rate %.4f, dropout %.4f, Test Result: %.4f"%(args.lr, args.dropout, np.mean(result)))
+    print("learning rate %.4f, dropout %.4f, Test Result: %.4f, Test Std: %.4f""%(args.lr, args.dropout, np.mean(result), np.std(result)))
         #if np.mean(result)>best_result:
         #        best_result = np.mean(result)
         #        best_std = np.std(result)
