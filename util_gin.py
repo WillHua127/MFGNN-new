@@ -141,3 +141,22 @@ def separate_data(graph_list, seed, fold_idx):
     return train_graph_list, test_graph_list
 
 
+def rand_train_test_idx(graphs, train_prop=.8, valid_prop=.1):
+    """ randomly splits label into train/valid/test splits """
+    n = len(graphs)
+    train_num = int(n * train_prop)
+    valid_num = int(n * valid_prop)
+
+    perm = torch.as_tensor(np.random.permutation(n))
+
+    train_indices = perm[:train_num]
+    val_indices = perm[train_num:train_num + valid_num]
+    test_indices = perm[train_num + valid_num:]
+
+    train_graphs = [graphs[i] for i in train_indices]
+    valid_graphs = [graphs[i] for i in val_indices]
+    valid_graphs = [graphs[i] for i in test_indices]
+
+    return train_graphs, valid_graphs, valid_graphs
+
+
