@@ -9,7 +9,7 @@ from tqdm import tqdm
 import time
 import itertools
 
-from util_gin import load_data, separate_data
+from util_gin import load_data, separate_data, rand_train_test_graph
 from graphcnn import GraphCNN
 
 criterion = nn.CrossEntropyLoss()
@@ -62,7 +62,17 @@ def pass_data_iteratively(model, graphs, minibatch_size = 64):
         output.append(model([graphs[j] for j in sampled_idx]).detach())
     return torch.cat(output, 0)
 
-def test(args, model, device, train_graphs, test_graphs, epoch):
+def test(args, model, device, test_graphs):
+    model.eval()
+    output = pass_data_iteratively(model, test_graphs)
+    pred = output.max(1, keepdim=True)[1]
+    labels = torch.LongTensor([graph.label for graph in test_graphs]).to(device)
+    correct = pred.eq(labels.view_as(pred)).sum().cpu().item()
+    acc_test = correct / float(len(test_graphs))
+    return acc_test
+
+
+def validate(args, model, device, train_graphs, test_graphs, epoch):
     model.eval()
 
     output = pass_data_iteratively(model, train_graphs)
@@ -74,12 +84,13 @@ def test(args, model, device, train_graphs, test_graphs, epoch):
     output = pass_data_iteratively(model, test_graphs)
     pred = output.max(1, keepdim=True)[1]
     labels = torch.LongTensor([graph.label for graph in test_graphs]).to(device)
+    loss = criterion(output, labels)
     correct = pred.eq(labels.view_as(pred)).sum().cpu().item()
     acc_test = correct / float(len(test_graphs))
 
-    print("accuracy train: %f test: %f" % (acc_train, acc_test))
+    print("train accuracy: %f validation accuracy: %f validation loss: %f" % (acc_train, acc_test, loss))
 
-    return acc_train, acc_test
+    return acc_train, acc_test, loss
 
 def main():
     # Training settings
@@ -154,7 +165,8 @@ def main():
     for idx in range(10):
 
         ##10-fold cross validation. Conduct an experiment on the fold specified by args.fold_idx.
-        train_graphs, test_graphs = separate_data(graphs, args.seed, idx)
+        #train_graphs, test_graphs = separate_data(graphs, args.seed, idx)
+        train_graphs, val_graphs, test_graphs = rand_train_test_graph(graphs)
 
         model = GraphCNN(args.num_layers, args.num_mlp_layers, train_graphs[0].node_features.shape[1], args.hidden_dim, args.rank, num_classes, args.dropout, args.learn_eps, args.graph_pooling_type, args.neighbor_pooling_type, device).to(device)
 
@@ -171,7 +183,7 @@ def main():
             #scheduler.step()
 
             avg_loss = train(args, model, device, train_graphs, optimizer, epoch)
-            acc_train, acc_test = test(args, model, device, train_graphs, test_graphs, epoch)
+            acc_train, acc_val, loss_val = test(args, model, device, train_graphs, val_graphs, epoch)
             scheduler.step()
 
             if not args.filename == "":
@@ -179,6 +191,18 @@ def main():
                     f.write("%f %f %f" % (avg_loss, acc_train, acc_test))
                     f.write("\n")
             print("")
+            
+            
+            if loss_val < tlss_mn:
+                best_test = test(args, model, device, test_graphs)
+                #print(best_test)
+                tacc_mx = best_test
+                tlss_mn = loss_val
+                curr_step = 0
+            else:
+                curr_step += 1
+                if curr_step >= patience:
+                    break
 
             #if acc_train >= tacc_mx or avg_loss <= tlss_mn:
             #    if acc_train >= tacc_mx and avg_loss <= tlss_mn:
@@ -191,7 +215,7 @@ def main():
             #    curr_step += 1
             #    if curr_step >= patience or np.isnan(avg_loss):
             #        break
-            best_test = acc_test
+            #best_test = acc_test
 
             #print(model.eps)
         print(best_test, args.lr, args.dropout)
