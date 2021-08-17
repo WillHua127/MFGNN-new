@@ -224,7 +224,7 @@ def main():
         if torch.cuda.is_available(): torch.cuda.empty_cache()
     #five_epochtime = time.time() - t_total
     #print("Total time elapsed: {:.4f}s, Total Epoch: {:.4f}".format(five_epochtime, num_epoch))
-    print("learning rate %.4f, dropout %.4f, Test Result: %.4f, Test Std: %.4f""%(args.lr, args.dropout, np.mean(result), np.std(result)))
+    print("learning rate %.4f, dropout %.4f, Test Result: %.4f, Test Std: %.4f"%(args.lr, args.dropout, np.mean(result), np.std(result)))
         #if np.mean(result)>best_result:
         #        best_result = np.mean(result)
         #        best_std = np.std(result)
