@@ -183,7 +183,7 @@ def main():
             #scheduler.step()
 
             avg_loss = train(args, model, device, train_graphs, optimizer, epoch)
-            acc_train, acc_val, loss_val = test(args, model, device, train_graphs, val_graphs, epoch)
+            acc_train, acc_val, loss_val = validate(args, model, device, train_graphs, val_graphs, epoch)
             scheduler.step()
 
             if not args.filename == "":
