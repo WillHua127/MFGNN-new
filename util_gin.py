@@ -141,7 +141,7 @@ def separate_data(graph_list, seed, fold_idx):
     return train_graph_list, test_graph_list
 
 
-def rand_train_test_idx(graphs, train_prop=.8, valid_prop=.1):
+def rand_train_test_graph(graphs, train_prop=.8, valid_prop=.1):
     """ randomly splits label into train/valid/test splits """
     n = len(graphs)
     train_num = int(n * train_prop)
