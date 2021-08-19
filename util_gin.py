@@ -3,6 +3,9 @@ import numpy as np
 import random
 import torch
 from sklearn.model_selection import StratifiedKFold
+from torch_geometric.datasets import TUDataset
+from torch_geometric.utils import to_networkx
+import os
 
 class S2VGraph(object):
     def __init__(self, g, label, node_tags=None, node_features=None):
@@ -17,11 +20,26 @@ class S2VGraph(object):
         self.label = label
         self.g = g
         self.node_tags = node_tags
-        self.neighbors = []
+        #self.neighbors = []
         self.node_features = 0
         self.edge_mat = 0
 
-        self.max_neighbor = 0
+        #self.max_neighbor = 0
+        
+class TorchGraph(object):
+    def __init__(self, g, label, edges, features):
+        '''
+            g: a networkx graph
+            label: an integer graph label
+            node_tags: a list of integer node tags
+            node_features: a torch float tensor, one-hot representation of the tag that is used as input to neural nets
+            edge_mat: a torch long tensor, contain edge list, will be used to create torch sparse tensor
+            neighbors: list of neighbors (without self-loop)
+        '''
+        self.label = label
+        self.g = g
+        self.node_features = features
+        self.edge_mat = edges
 
 
 def load_data(dataset, degree_as_tag):
@@ -83,15 +101,15 @@ def load_data(dataset, degree_as_tag):
 
     #add labels and edge_mat       
     for g in g_list:
-        g.neighbors = [[] for i in range(len(g.g))]
-        for i, j in g.g.edges():
-            g.neighbors[i].append(j)
-            g.neighbors[j].append(i)
-        degree_list = []
-        for i in range(len(g.g)):
-            g.neighbors[i] = g.neighbors[i]
-            degree_list.append(len(g.neighbors[i]))
-        g.max_neighbor = max(degree_list)
+        #g.neighbors = [[] for i in range(len(g.g))]
+        #for i, j in g.g.edges():
+        #    g.neighbors[i].append(j)
+        #    g.neighbors[j].append(i)
+        #degree_list = []
+        #for i in range(len(g.g)):
+        #    g.neighbors[i] = g.neighbors[i]
+        #    degree_list.append(len(g.neighbors[i]))
+        #g.max_neighbor = max(degree_list)
 
         g.label = label_dict[g.label]
 
@@ -124,6 +142,13 @@ def load_data(dataset, degree_as_tag):
     print("# data: %d" % len(g_list))
 
     return g_list, len(label_dict)
+
+def load_torch_data(dataset):
+    torch_graphs = TUDataset(os.path.join('data', dataset),name=dataset)
+    g_list = [TorchGraph(to_networkx(g), g.y, g.edge_index, g.x) for g in torch_graphs]
+    print('# classes: %d' % torch_graphs.num_classes)
+    print("# data: %d" % len(g_list))
+    return g_list, torch_graphs.num_classes
 
 def separate_data(graph_list, seed, fold_idx):
     assert 0 <= fold_idx and fold_idx < 10, "fold_idx must be from 0 to 9."
