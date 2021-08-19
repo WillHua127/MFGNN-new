@@ -9,7 +9,7 @@ from tqdm import tqdm
 import time
 import itertools
 
-from util_gin import load_data, separate_data, rand_train_test_graph
+from util_gin import load_data, separate_data, rand_train_test_graph, load_torch_data
 from graphcnn import GraphCNN
 
 criterion = nn.CrossEntropyLoss()
@@ -141,7 +141,10 @@ def main():
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(args.seed)
 
-    graphs, num_classes = load_data(args.dataset, args.degree_as_tag)
+    if args.dataset in {'DD'}:
+        graphs, num_classes = load_torch_data(args.dataset)
+    else:
+        graphs, num_classes = load_data(args.dataset, args.degree_as_tag)
     
     
     
