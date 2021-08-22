@@ -162,10 +162,10 @@ def main():
     #dropout = [0.2]#, 0.1, 0.2, 0.3, 0.4, 0.5 ,0.6, 0.7, 0.8, 0.9]
     #for args.lr, args.dropout in itertools.product(lr, dropout):
     #for args.lr, args.dropout in itertools.product(lr, dropout):
-    result = np.zeros(20)
+    result = np.zeros(10)
     t_total = time.time()
     num_epoch = 0
-    for idx in range(20):
+    for idx in range(10):
 
         ##10-fold cross validation. Conduct an experiment on the fold specified by args.fold_idx.
         #train_graphs, test_graphs = separate_data(graphs, args.seed, idx)
