@@ -148,7 +148,7 @@ def main():
     
     
     
-    patience = 50
+    patience = 100
     best_result = 0
     best_std = 0
     best_dropout = None
