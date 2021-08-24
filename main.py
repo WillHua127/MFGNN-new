@@ -196,13 +196,13 @@ def main():
             print("")
             
             
-            if acc_val > tacc_mx or loss_val < tlss_mn:
-                if acc_val > tacc_mx and loss_val < tlss_mn:
-                    best_test = test(args, model, device, test_graphs)
-                    #print(best_test)
-                    tacc_mx = acc_val
-                    tlss_mn = loss_val
-                    curr_step = 0
+            #if acc_val > tacc_mx or loss_val < tlss_mn:
+            if acc_val > tacc_mx and loss_val < tlss_mn:
+                best_test = test(args, model, device, test_graphs)
+                #print(best_test)
+                tacc_mx = acc_val
+                tlss_mn = loss_val
+                curr_step = 0
             else:
                 curr_step += 1
                 if curr_step >= patience:
