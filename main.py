@@ -141,7 +141,7 @@ def main():
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(args.seed)
 
-    if args.dataset in {'DD','FRANKENSTEIN'}:
+    if args.dataset in {'DD','FRANKENSTEIN','NCI1','NCI109'}:
         graphs, num_classes = load_torch_data(args.dataset)
     else:
         graphs, num_classes = load_data(args.dataset, args.degree_as_tag)
