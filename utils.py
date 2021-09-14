@@ -434,6 +434,8 @@ def load_gc_data(dataset):
 def load_ogb_graph(dataset_name):
     if not os.path.isfile('torch_geometric_data/dgl_'+dataset_name):
         dataset = PygNodePropPredDataset(name = "ogbn-"+dataset_name, root = 'torch_geometric_data/')
+        split_idx = dataset.get_idx_split()
+        train_idx, valid_idx, test_idx = split_idx["train"], split_idx["valid"], split_idx["test"]
         edge = dataset[0].edge_index
         num_classes = len(np.unique(dataset[0].y))
         print("Nodes: %d, edges: %d, features: %d, classes: %d. \n"%(dataset[0].y.shape[0], len(edge[0])/2, len(dataset[0].x[0]), num_classes))
@@ -441,15 +443,21 @@ def load_ogb_graph(dataset_name):
         graph.ndata['features'] = dataset[0].x
         graph.ndata['labels'] = dataset[0].y
         dgl.data.utils.save_graphs('torch_geometric_data/dgl_'+dataset_name, graph)
+        torch.save(train_idx, 'torch_geometric_data/ogbn_'+dataset_name+'/train_'+dataset_name+'.pt')
+        torch.save(valid_idx, 'torch_geometric_data/ogbn_'+dataset_name+'/valid_'+dataset_name+'.pt')
+        torch.save(test_idx, 'torch_geometric_data/ogbn_'+dataset_name+'/test_'+dataset_name+'.pt')
         labels = graph.ndata.pop('labels')
         features = graph.ndata.pop('features')
     elif os.path.isfile('torch_geometric_data/dgl_'+dataset_name):
         graph = dgl.data.utils.load_graphs('torch_geometric_data/dgl_'+dataset_name)[0][0]
         labels = graph.ndata.pop('labels')
         features = graph.ndata.pop('features')
+        train_idx = torch.load('torch_geometric_data/ogbn_'+dataset_name+'/train_'+dataset_name+'.pt')
+        valid_idx = torch.load('torch_geometric_data/ogbn_'+dataset_name+'/valid_'+dataset_name+'.pt')
+        test_idx = torch.load('torch_geometric_data/ogbn_'+dataset_name+'/test_'+dataset_name+'.pt')
         num_classes = len(torch.unique(labels))
         
-    return graph, features, labels, num_classes
+    return graph, features, labels, num_classes, train_idx, valid_idx, test_idx
 
 
 def load_data(dataset_str):
