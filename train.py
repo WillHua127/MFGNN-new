@@ -107,7 +107,7 @@ def test_sgcnh(model, idx_train, idx_val, idx_test):
     return acc_test
   
   
-def train_ogb():
+def train_ogb(idx_train, idx_val, idx_test):
     patience = 50
     best_result = 0
     best_std = 0
@@ -489,4 +489,4 @@ def train_semisupervised():
     print("Best learning rate %.4f, Best weight decay %.6f, dropout %.4f, Test Mean: %.4f, Time/Run: %.4f, Time/Epoch: %.4f"%(best_lr, best_weight_decay, best_dropout, best_result, best_time, best_time/best_epoch))
     
 
-train_ogb()
+train_ogb(idx_train, idx_val, idx_test)
