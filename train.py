@@ -128,7 +128,7 @@ def train_ogb():
         #result = np.zeros(10)
         t_total = time.time()
         num_epoch = 0
-        model = SampleCPPooling(in_fea=features.shape[1],out_class=num_class, hidden=args.hidden, dropout=args.dropout)
+        model = SampleCPPooling(in_fea=features.shape[1],out_class=num_class, hidden=args.hidden, rank=args.rank, dropout=args.dropout)
         train_dataloader = dgl.dataloading.NodeDataLoader(
                 g,              # The graph
                 idx_train,         # The node IDs to iterate over in minibatches
