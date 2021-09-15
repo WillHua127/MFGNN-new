@@ -62,12 +62,14 @@ args.cuda = not args.no_cuda and torch.cuda.is_available()
 
 np.random.seed(args.seed)
 torch.manual_seed(args.seed)
+device = torch.device("cuda:" + str(args.device)) if torch.cuda.is_available() else torch.device("cpu")
 if args.cuda:
     torch.cuda.manual_seed(args.seed)
     
 
 if args.dataset_name in {'arxiv','proteins','mag','products'}:
     g,features,labels, num_class, idx_train, idx_val, idx_test = load_ogb_graph(args.dataset_name)
+    g = g.to(device)
     labels = torch.squeeze(labels)
     if args.cuda:
         idx_train = idx_train.cuda()
