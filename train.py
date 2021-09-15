@@ -66,7 +66,7 @@ if args.cuda:
     torch.cuda.manual_seed(args.seed)
     
 
-if args.dataset_name in {'arxiv'}:
+if args.dataset_name in {'arxiv','proteins','mag','products'}:
     g,features,labels, num_class, idx_train, idx_val, idx_test = load_ogb_graph(args.dataset_name)
     labels = torch.squeeze(labels)
     if args.cuda:
