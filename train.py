@@ -27,7 +27,7 @@ parser.add_argument('--fastmode', action='store_true', default=False,
                     help='Validate during training pass.')
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
 parser.add_argument('--neighbor', type=int, default=10, help='1layer neighbor.')
-parser.add_argument('--epochs', type=int, default=5000,
+parser.add_argument('--epochs', type=int, default=10,
                     help='Number of epochs to train.')
 parser.add_argument('--lr', type=float, default=0.05,
                     help='Initial learning rate.')
@@ -71,15 +71,15 @@ if args.cuda:
 
 if args.dataset_name in {'arxiv','proteins','mag','products'}:
     g,features,labels, num_class, idx_train, idx_val, idx_test = load_ogb_graph(args.dataset_name)
-    g = g.to(device)
+    #g = g.to(device)
     labels = torch.squeeze(labels)
     if args.cuda:
         idx_train = idx_train.cuda()
         idx_val = idx_val.cuda()
         idx_test = idx_test.cuda()
-        features = features.cuda()
+        #features = features.cuda()
         #adj = adj.cuda()
-        labels = labels.cuda()
+        #labels = labels.cuda()
     g.ndata['features'] = features
     g.ndata['labels'] = labels
     #norm = None
@@ -185,6 +185,10 @@ def train_ogb():
                 for step, (input_nodes, output_nodes, mfgs) in enumerate(tq):
                     inputs = mfgs[0].srcdata['features']
                     labels = mfgs[-1].dstdata['labels']
+                    if args.cuda:
+                      inputs = inputs.cuda()
+                      #adj = adj.cuda()
+                      labels = labels.cuda()
                     output = model(mfgs, inputs)
                     loss_train = F.cross_entropy(output, labels)
                     optimizer.zero_grad()
@@ -203,6 +207,10 @@ def train_ogb():
                 for input_nodes, output_nodes, mfgs in tq:
                     inputs = mfgs[0].srcdata['features']
                     labels.append(mfgs[-1].dstdata['labels'].cpu().numpy())
+                    if args.cuda:
+                      inputs = inputs.cuda()
+                      #adj = adj.cuda()
+                      labels = labels.cuda()
                     output = model(mfgs, inputs)
                     predictions.append(output.argmax(1).cpu().numpy())
                     #loss_val = F.cross_entropy(output, labels)
@@ -222,6 +230,10 @@ def train_ogb():
                     for input_nodes, output_nodes, mfgs in tq:
                         inputs = mfgs[0].srcdata['features']
                         labels_test.append(mfgs[-1].dstdata['labels'].cpu().numpy())
+                        if args.cuda:
+                          inputs = inputs.cuda()
+                          #adj = adj.cuda()
+                          #labels = labels.cuda()
                         output = model(mfgs, inputs)
                         predictions_test.append(output.argmax(1).cpu().numpy())
 
