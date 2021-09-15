@@ -122,26 +122,30 @@ class CPlayer(Module):
     def _elementwise_product(self, nodes):
         return {'neigh':torch.prod(nodes.mailbox['m'],dim=1)}
     
-    def forward(self, g, x):
+    def forward(self, g, x, norm=None):
          with g.local_scope():
-            feat_src = feat_dst = x = torch.mm(x, self.W)
+            if isinstance(x, tuple):
+                feat_src = x[0]
+                feat_dst = x[1]
+                feat_src = torch.mm(feat_src, self.W)
+                feat_dst = torch.mm(feat_dst, self.W)
+                g.srcdata['h'] = feat_src
+                g.dstdata['h'] = feat_dst
+                g.update_all(fn.copy_src('h', 'm'), self._elementwise_product)
+                # divide in_degrees
+                out = g.dstdata['neigh'] * g.dstdata['h']
+                out = torch.mm(out, self.V.T)
+                return out
+            else:
+                feat_src = feat_dst = torch.mm(x, self.W)
+                g.srcdata['h'] = feat_src
+                g.update_all(fn.copy_src('h', 'm'), self._elementwise_product)
+                out = g.dstdata['neigh']
 
-            g.srcdata['h'] = feat_src
-            g.update_all(fn.copy_src('h', 'm'), self._elementwise_product)
-            #trans_x = g.ndata['norm']*g.dstdata['neigh']
-            trans_x = g.dstdata['neigh']
-            
-            out = torch.mm(trans_x, self.V.T)
-            #out = out
+                #out = norm*torch.mm(out, self.V.T)
+                out = torch.mm(out, self.V.T)
 
-            return out
-                
-        #x = torch.mm(input, self.W)
-        #x = self.cpmm(x, edge_dict)
-        #output = F.relu(torch.mm(x,self.V.T))
-        #output = torch.mm(output, self.fc)
-        
-        #return output
+                return out
         
 class GINConv(nn.Module):
     def __init__(self,
