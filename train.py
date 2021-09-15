@@ -73,13 +73,6 @@ if args.dataset_name in {'arxiv','proteins','mag','products'}:
     g,features,labels, num_class, idx_train, idx_val, idx_test = load_ogb_graph(args.dataset_name)
     #g = g.to(device)
     labels = torch.squeeze(labels)
-    if args.cuda:
-        idx_train = idx_train.cuda()
-        idx_val = idx_val.cuda()
-        idx_test = idx_test.cuda()
-        #features = features.cuda()
-        #adj = adj.cuda()
-        #labels = labels.cuda()
     g.ndata['features'] = features
     g.ndata['labels'] = labels
     #norm = None
@@ -168,6 +161,9 @@ def train_ogb():
             num_workers=0       # Number of sampler processes
             )
         if args.cuda:
+            idx_train = idx_train.cuda()
+            idx_val = idx_val.cuda()
+            idx_test = idx_test.cuda()
             model.cuda()
 
         optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
