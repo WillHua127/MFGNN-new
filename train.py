@@ -187,7 +187,7 @@ def train_ogb(idx_train, idx_val, idx_test):
                     if args.cuda:
                       inputs = inputs.cuda()
                       #adj = adj.cuda()
-                      labels = labels.cuda()
+                      #labels = labels.cuda()
                     output = model(mfgs, inputs)
                     loss_train = F.cross_entropy(output, labels)
                     optimizer.zero_grad()
@@ -209,7 +209,7 @@ def train_ogb(idx_train, idx_val, idx_test):
                     if args.cuda:
                       inputs = inputs.cuda()
                       #adj = adj.cuda()
-                      labels = labels.cuda()
+                      #labels = labels.cuda()
                     output = model(mfgs, inputs)
                     predictions.append(output.argmax(1).cpu().numpy())
                     #loss_val = F.cross_entropy(output, labels)
