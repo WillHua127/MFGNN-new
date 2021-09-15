@@ -120,6 +120,21 @@ class GCN(nn.Module):
             h = F.dropout(h, self.dropout, training=self.training)
             
         return self.layers[-1](h)
+    
+class SampleCPPooling(nn.Module):
+    def __init__(self, in_fea, hidden, out_class, rank, dropout):
+        super(SampleCPPooling, self).__init__()
+        self.cp = CPlayer(in_fea, hidden, rank)
+        self.fc = FClayer(hidden, out_class)
+        self.dropout = dropout
+
+    def forward(self, mfgs, x):
+        h_dst = x[:mfgs[0].num_dst_nodes()]
+        h = self.cp(mfgs[0], (x, h_dst))
+        h = F.relu(h)
+        h = F.dropout(h, self.dropout, training=self.training)
+        out = self.fc(h)
+        return out
             
         
 class CPPooling(nn.Module):
