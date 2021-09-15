@@ -11,8 +11,11 @@ import torch.optim as optim
 import matplotlib
 import itertools
 
-from utils import load_data, accuracy, full_load_data, data_split, random_disassortative_splits, rand_train_test_idx, load_graph_data, semi_supervised_splits
-from models import CPPooling, TwoCPPooling
+from utils import load_data, accuracy, full_load_data, data_split, random_disassortative_splits, rand_train_test_idx, load_graph_data, semi_supervised_splits,load_ogb_graph
+from models import CPPooling, TwoCPPooling, SampleCPPooling
+import dgl
+import tqdm
+import sklearn
 
 
 
@@ -62,20 +65,26 @@ if args.cuda:
     torch.cuda.manual_seed(args.seed)
     
 
-# Load data
-if args.dataset_name in {'arxiv, products, proteins, mag'}:
+if args.dataset_name in {'arxiv'}:
     g,features,labels, num_class, idx_train, idx_val, idx_test = load_ogb_graph(args.dataset_name)
     labels = torch.squeeze(labels)
-    norm = None
     if args.cuda:
         idx_train = idx_train.cuda()
         idx_val = idx_val.cuda()
         idx_test = idx_test.cuda()
+        features = features.cuda()
+        #adj = adj.cuda()
+        labels = labels.cuda()
+    g.ndata['features'] = features
+    g.ndata['labels'] = labels
+    #norm = None
+   # if args.add_self_loop:
+    #    g = dgl.add_self_loop(g)
 else:
     g,n_classes = load_graph_data(args.dataset_name)
     labels = g.ndata.pop('labels')
     features = g.ndata.pop('features')
-    norm = None
+    #norm = None
 
     num_class = labels.max()+1
 
@@ -101,7 +110,7 @@ def test_sgcnh(model, idx_train, idx_val, idx_test):
   
   
 def train_ogb():
-    patience = 100
+    patience = 50
     best_result = 0
     best_std = 0
     best_dropout = None
@@ -113,24 +122,44 @@ def train_ogb():
     lr = [0.05, 0.01,0.002]#,0.01,
     weight_decay = [1e-4,5e-4,5e-5, 5e-3] #5e-5,1e-4,5e-4,1e-3,5e-3
     dropout = [0.1, 0.2, 0.3]#, 0.4, 0.5 ,0.6, 0.7, 0.8, 0.9]
+    sampler = dgl.dataloading.MultiLayerNeighborSampler([5])
+
     for args.lr, args.weight_decay in itertools.product(lr, weight_decay):
         #result = np.zeros(10)
         t_total = time.time()
         num_epoch = 0
-        #idx_train, idx_val, idx_test = rand_train_test_idx(labels)
-        #idx_train, idx_val, idx_test = random_disassortative_splits(labels, num_class)
-        #rank = OneVsRestClassifier(LinearRegression()).fit(features[idx_train], labels[idx_train]).predict(features)
-        #print(rank)
-        #adj = reconstruct(old_adj, rank, num_class)
-
-        model = CPPooling(in_fea=features.shape[1],out_class=labels.max().item() + 1, hidden=args.hidden, dropout=args.dropout)
-        #model = TwoCPPooling(in_fea=features.shape[1], out_class=labels.max().item() + 1, hidden1=2*args.hidden, hidden2=args.hidden, dropout=args.dropout)
-
+        model = SampleCPPooling(in_fea=features.shape[1],out_class=num_class, hidden=args.hidden, dropout=args.dropout)
+        train_dataloader = dgl.dataloading.NodeDataLoader(
+                g,              # The graph
+                idx_train,         # The node IDs to iterate over in minibatches
+                sampler,            # The neighbor sampler
+                # The following arguments are inherited from PyTorch DataLoader.
+                batch_size=1024,    # Batch size
+                shuffle=True,       # Whether to shuffle the nodes for every epoch
+                drop_last=False,    # Whether to drop the last incomplete batch
+                num_workers=0       # Number of sampler processes
+            )
+        valid_dataloader = dgl.dataloading.NodeDataLoader(
+            g,              # The graph
+            idx_val,         # The node IDs to iterate over in minibatches
+            sampler,            # The neighbor sampler
+            # The following arguments are inherited from PyTorch DataLoader.
+            batch_size=1024,    # Batch size
+            shuffle=True,       # Whether to shuffle the nodes for every epoch
+            drop_last=False,    # Whether to drop the last incomplete batch
+            num_workers=0       # Number of sampler processes
+            )
+        test_dataloader = dgl.dataloading.NodeDataLoader(
+            g,              # The graph
+            idx_test,         # The node IDs to iterate over in minibatches
+            sampler,            # The neighbor sampler
+            # The following arguments are inherited from PyTorch DataLoader.
+            batch_size=1024,    # Batch size
+            shuffle=True,       # Whether to shuffle the nodes for every epoch
+            drop_last=False,    # Whether to drop the last incomplete batch
+            num_workers=0       # Number of sampler processes
+            )
         if args.cuda:
-            #adj = adj.cuda()
-        #    idx_train = idx_train.cuda()
-        #    idx_val = idx_val.cuda()
-        #    idx_test = idx_test.cuda()
             model.cuda()
 
         optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -141,46 +170,70 @@ def train_ogb():
         curr_step = 0
         best_test = 0
         best_training_loss = 99999
+        loss_train=0
         for epoch in range(args.epochs):
+            
             num_epoch = num_epoch+1
             t = time.time()
             model.train()
-            optimizer.zero_grad()
-            output = model(g, features, norm)
-            #print(F.softmax(output,dim=1))
-            output = F.log_softmax(output, dim=1)
-            #print(output)
-            loss_train = F.nll_loss(output[idx_train], labels[idx_train])
-            acc_train = accuracy(output[idx_train], labels[idx_train])
-            loss_train.backward()
-            optimizer.step()
+            with tqdm.tqdm(train_dataloader) as tq:
+                for step, (input_nodes, output_nodes, mfgs) in enumerate(tq):
+                    inputs = mfgs[0].srcdata['features']
+                    labels = mfgs[-1].dstdata['labels']
+                    output = model(mfgs, inputs)
+                    loss_train = F.cross_entropy(output, labels)
+                    optimizer.zero_grad()
+                    loss_train.backward()
+                    optimizer.step()
 
-            if not args.fastmode:
-                # Evaluate validation set performance separately,
-                # deactivates dropout during validation run.
+                    accuracy = sklearn.metrics.accuracy_score(labels.cpu().numpy(), output.argmax(1).detach().cpu().numpy())
+
+                    tq.set_postfix({'loss': '%.03f' % loss_train.item(), 'acc': '%.03f' % accuracy}, refresh=False)
+                    
+            model.eval()
+            predictions = []
+            labels = []
+            loss_accum = 0
+            with tqdm.tqdm(valid_dataloader) as tq, torch.no_grad():
+                for input_nodes, output_nodes, mfgs in tq:
+                    inputs = mfgs[0].srcdata['features']
+                    labels.append(mfgs[-1].dstdata['labels'].cpu().numpy())
+                    output = model(mfgs, inputs)
+                    predictions.append(output.argmax(1).cpu().numpy())
+                    #loss_val = F.cross_entropy(output, labels)
+                    #loss_accum += loss_val.item()
+                    
+                predictions = np.concatenate(predictions)
+                labels = np.concatenate(labels)
+                val_acc = sklearn.metrics.accuracy_score(labels, predictions)
+                print('Epoch {} Validation Accuracy {}'.format(epoch, val_acc))
+
+            if val_acc >= vacc_mx: #or loss_accum <= vlss_mn:
+                #if val_acc >= vacc_mx and loss_accum <= vlss_mn:
                 model.eval()
-                output = model(g, features, norm)
-                output = F.log_softmax(output, dim=1)
+                predictions_test = []
+                labels_test = []
+                with tqdm.tqdm(test_dataloader) as tq, torch.no_grad():
+                    for input_nodes, output_nodes, mfgs in tq:
+                        inputs = mfgs[0].srcdata['features']
+                        labels_test.append(mfgs[-1].dstdata['labels'].cpu().numpy())
+                        output = model(mfgs, inputs)
+                        predictions_test.append(output.argmax(1).cpu().numpy())
 
-            val_loss = F.nll_loss(output[idx_val], labels[idx_val])
-            val_acc = accuracy(output[idx_val], labels[idx_val])
 
-            if val_acc >= vacc_mx or val_loss <= vlss_mn:
-                if val_acc >= vacc_mx and val_loss <= vlss_mn:
-                    vacc_early_model = val_acc
-                    vlss_early_model = val_loss
-                    best_test = test_sgcnh(model, idx_train, idx_val, idx_test)
-                    best_training_loss = loss_train
+                    predictions_test = np.concatenate(predictions_test)
+                    labels_test = np.concatenate(labels_test)
+                    best_test = sklearn.metrics.accuracy_score(labels_test, predictions_test)
                 vacc_mx = np.max((val_acc, vacc_mx))
-                vlss_mn = np.min((val_loss, vlss_mn))
+                #vlss_mn = np.min((loss_accum, vlss_mn))
                 curr_step = 0
             else:
                 curr_step += 1
                 if curr_step >= patience:
                     break
-            print("Best train: %.4f, best test: %.4f"%(acc_train.item(), best_test))
+            print("Best val: %.4f, best test: %.4f"%(val_acc, best_test))
 
-        print("Optimization Finished! Best Test Result: %.4f, Training Loss: %.4f"%(best_test, best_training_loss))
+        print("Optimization Finished! Best Test Result: %.4f"%(best_test))
 
         #model.load_state_dict(state_dict_early_model)
         # Testing
