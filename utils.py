@@ -448,10 +448,13 @@ def load_ogb_graph(dataset_name):
         torch.save(test_idx, 'torch_geometric_data/ogbn_'+dataset_name+'/test_'+dataset_name+'.pt')
         labels = graph.ndata.pop('labels')
         features = graph.ndata.pop('features')
+        features = torch.hstack([features, torch.ones([features.shape[0],1])])
+        print(features)
     elif os.path.isfile('torch_geometric_data/dgl_'+dataset_name):
         graph = dgl.data.utils.load_graphs('torch_geometric_data/dgl_'+dataset_name)[0][0]
         labels = graph.ndata.pop('labels')
         features = graph.ndata.pop('features')
+        features = torch.hstack([features, torch.ones([features.shape[0],1])])
         train_idx = torch.load('torch_geometric_data/ogbn_'+dataset_name+'/train_'+dataset_name+'.pt')
         valid_idx = torch.load('torch_geometric_data/ogbn_'+dataset_name+'/valid_'+dataset_name+'.pt')
         test_idx = torch.load('torch_geometric_data/ogbn_'+dataset_name+'/test_'+dataset_name+'.pt')
