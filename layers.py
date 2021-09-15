@@ -103,6 +103,7 @@ class CPlayer(Module):
         super(CPlayer, self).__init__()
         self.W = Parameter(torch.FloatTensor(in_fea, rank))
         self.V = Parameter(torch.FloatTensor(hidden, rank))
+        self.act = F.tanh
         self.reset_parameters()
         
     def reset_parameters(self):
@@ -127,8 +128,8 @@ class CPlayer(Module):
             if isinstance(x, tuple):
                 feat_src = x[0]
                 feat_dst = x[1]
-                feat_src = torch.mm(feat_src, self.W)
-                feat_dst = torch.mm(feat_dst, self.W)
+                feat_src = self.act(torch.mm(feat_src, self.W))
+                feat_dst = self.act(torch.mm(feat_dst, self.W))
                 g.srcdata['h'] = feat_src
                 g.dstdata['h'] = feat_dst
                 g.update_all(fn.copy_src('h', 'm'), self._elementwise_product)
