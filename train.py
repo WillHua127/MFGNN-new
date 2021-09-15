@@ -139,6 +139,7 @@ def train_ogb():
                 idx_train,         # The node IDs to iterate over in minibatches
                 sampler,            # The neighbor sampler
                 # The following arguments are inherited from PyTorch DataLoader.
+                device = device,
                 batch_size=1024,    # Batch size
                 shuffle=True,       # Whether to shuffle the nodes for every epoch
                 drop_last=False,    # Whether to drop the last incomplete batch
@@ -149,6 +150,7 @@ def train_ogb():
             idx_val,         # The node IDs to iterate over in minibatches
             sampler,            # The neighbor sampler
             # The following arguments are inherited from PyTorch DataLoader.
+            device = device,
             batch_size=1024,    # Batch size
             shuffle=True,       # Whether to shuffle the nodes for every epoch
             drop_last=False,    # Whether to drop the last incomplete batch
@@ -159,6 +161,7 @@ def train_ogb():
             idx_test,         # The node IDs to iterate over in minibatches
             sampler,            # The neighbor sampler
             # The following arguments are inherited from PyTorch DataLoader.
+            device = device,
             batch_size=1024,    # Batch size
             shuffle=True,       # Whether to shuffle the nodes for every epoch
             drop_last=False,    # Whether to drop the last incomplete batch
