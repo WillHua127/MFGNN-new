@@ -449,7 +449,7 @@ def load_ogb_graph(dataset_name):
         labels = graph.ndata.pop('labels')
         features = graph.ndata.pop('features')
         features = torch.hstack([features, torch.ones([features.shape[0],1])])
-        print(features)
+        #print(features)
     elif os.path.isfile('torch_geometric_data/dgl_'+dataset_name):
         graph = dgl.data.utils.load_graphs('torch_geometric_data/dgl_'+dataset_name)[0][0]
         labels = graph.ndata.pop('labels')
