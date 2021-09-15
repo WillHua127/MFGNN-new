@@ -91,9 +91,9 @@ if args.cuda:
     #adj = adj.cuda()
     labels = labels.cuda()
     #norm = norm.cuda()
-    #idx_train = idx_train.cuda()
-    #idx_val = idx_val.cuda()
-    #idx_test = idx_test.cuda()
+    idx_train = idx_train.cuda()
+    idx_val = idx_val.cuda()
+    idx_test = idx_test.cuda()
 
     
 def test_sgcnh(model, idx_train, idx_val, idx_test):
@@ -107,7 +107,7 @@ def test_sgcnh(model, idx_train, idx_val, idx_test):
     return acc_test
   
   
-def train_ogb(idx_train, idx_val, idx_test):
+def train_ogb():
     patience = 50
     best_result = 0
     best_std = 0
@@ -129,7 +129,7 @@ def train_ogb(idx_train, idx_val, idx_test):
         model = SampleCPPooling(in_fea=features.shape[1],out_class=num_class, hidden=args.hidden, rank=args.rank, dropout=args.dropout)
         train_dataloader = dgl.dataloading.NodeDataLoader(
                 g,              # The graph
-                idx_train,         # The node IDs to iterate over in minibatches
+                idx_train.cpu(),         # The node IDs to iterate over in minibatches
                 sampler,            # The neighbor sampler
                 # The following arguments are inherited from PyTorch DataLoader.
                 device = device,
@@ -140,7 +140,7 @@ def train_ogb(idx_train, idx_val, idx_test):
             )
         valid_dataloader = dgl.dataloading.NodeDataLoader(
             g,              # The graph
-            idx_val,         # The node IDs to iterate over in minibatches
+            idx_val.cpu(),         # The node IDs to iterate over in minibatches
             sampler,            # The neighbor sampler
             # The following arguments are inherited from PyTorch DataLoader.
             device = device,
@@ -151,7 +151,7 @@ def train_ogb(idx_train, idx_val, idx_test):
             )
         test_dataloader = dgl.dataloading.NodeDataLoader(
             g,              # The graph
-            idx_test,         # The node IDs to iterate over in minibatches
+            idx_test.cpu(),         # The node IDs to iterate over in minibatches
             sampler,            # The neighbor sampler
             # The following arguments are inherited from PyTorch DataLoader.
             device = device,
@@ -160,11 +160,7 @@ def train_ogb(idx_train, idx_val, idx_test):
             drop_last=False,    # Whether to drop the last incomplete batch
             num_workers=0       # Number of sampler processes
             )
-        if args.cuda:
-            idx_train = idx_train.cuda()
-            idx_val = idx_val.cuda()
-            idx_test = idx_test.cuda()
-            model.cuda()
+
 
         optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         vlss_mn = np.inf
