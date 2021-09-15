@@ -103,7 +103,7 @@ class CPlayer(Module):
         super(CPlayer, self).__init__()
         self.W = Parameter(torch.FloatTensor(in_fea, rank))
         self.V = Parameter(torch.FloatTensor(hidden, rank))
-        self.act = F.tanh
+        self.act = torch.tanh
         self.reset_parameters()
         
     def reset_parameters(self):
