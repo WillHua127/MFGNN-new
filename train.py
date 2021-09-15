@@ -55,6 +55,8 @@ parser.add_argument('--dropout', type=float, default=0.1,
                     help='Dropout rate (1 - keep probability).')
 parser.add_argument('--task', type=str,
                     help='semi-supervised learning or supervised learning.', default = 'sl')
+parser.add_argument('--device', type=int, default=0,
+                        help='which gpu to use if any (default: 0)')
 
 
 args = parser.parse_args()
