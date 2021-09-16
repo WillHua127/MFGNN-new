@@ -108,7 +108,7 @@ def test_sgcnh(model, idx_train, idx_val, idx_test):
   
   
 def train_ogb():
-    patience = 50
+    patience = 100
     best_result = 0
     best_std = 0
     best_dropout = None
