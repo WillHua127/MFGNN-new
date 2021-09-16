@@ -160,6 +160,8 @@ def train_ogb():
             drop_last=False,    # Whether to drop the last incomplete batch
             num_workers=0       # Number of sampler processes
             )
+        if args.cuda:
+          model.cuda()
 
 
         optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -178,12 +180,8 @@ def train_ogb():
             model.train()
             with tqdm.tqdm(train_dataloader) as tq:
                 for step, (input_nodes, output_nodes, mfgs) in enumerate(tq):
-                    inputs = mfgs[0].srcdata['features']
+                    inputs = mfgs[0].srcdata['features'].to(device)
                     labels = mfgs[-1].dstdata['labels']
-                    if args.cuda:
-                      inputs = inputs.cuda()
-                      #adj = adj.cuda()
-                      #labels = labels.cuda()
                     output = model(mfgs, inputs)
                     loss_train = F.cross_entropy(output, labels)
                     optimizer.zero_grad()
@@ -200,12 +198,8 @@ def train_ogb():
             loss_accum = 0
             with tqdm.tqdm(valid_dataloader) as tq, torch.no_grad():
                 for input_nodes, output_nodes, mfgs in tq:
-                    inputs = mfgs[0].srcdata['features']
+                    inputs = mfgs[0].srcdata['features'].to(device)
                     labels.append(mfgs[-1].dstdata['labels'].cpu().numpy())
-                    if args.cuda:
-                      inputs = inputs.cuda()
-                      #adj = adj.cuda()
-                      #labels = labels.cuda()
                     output = model(mfgs, inputs)
                     predictions.append(output.argmax(1).cpu().numpy())
                     #loss_val = F.cross_entropy(output, labels)
@@ -223,12 +217,8 @@ def train_ogb():
                 labels_test = []
                 with tqdm.tqdm(test_dataloader) as tq, torch.no_grad():
                     for input_nodes, output_nodes, mfgs in tq:
-                        inputs = mfgs[0].srcdata['features']
+                        inputs = mfgs[0].srcdata['features'].to(device)
                         labels_test.append(mfgs[-1].dstdata['labels'].cpu().numpy())
-                        if args.cuda:
-                          inputs = inputs.cuda()
-                          #adj = adj.cuda()
-                          #labels = labels.cuda()
                         output = model(mfgs, inputs)
                         predictions_test.append(output.argmax(1).cpu().numpy())
 
