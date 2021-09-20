@@ -40,6 +40,8 @@ class GraphConv(nn.Module):
 
     def reset_parameters(self):
         nn.init.xavier_uniform_(self.weight)
+        if not self._out:
+                nn.init.xavier_uniform_(self.weight2)
         
     def _elementwise_product(self, nodes):
         return {'h':torch.prod(nodes.mailbox['m'],dim=1)}
@@ -79,8 +81,6 @@ class GraphConv(nn.Module):
                 if weight is not None:
                     rst = torch.matmul(rst, weight)
                     
-            if not self._out:
-                rst = torch.matmul(rst, self.weight2)
 
             if self._norm != 'none':
                 degs = graph.in_degrees().float().clamp(min=1)
@@ -91,13 +91,16 @@ class GraphConv(nn.Module):
                 shp = norm.shape + (1,) * (feat_dst.dim() - 1)
                 norm = torch.reshape(norm, shp)
                 rst = rst * norm
+                
+            if not self._out:
+                rst = torch.matmul(rst, self.weight2)
 
             if self._activation is not None:
                 rst = self._activation(rst)
 
             return rst
         
-class GraphConv(nn.Module):
+class GATConv(nn.Module):
     def __init__(self,
                  in_feats,
                  out_feats,
