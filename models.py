@@ -122,13 +122,13 @@ class GCN(nn.Module):
         return self.layers[-1](h)
     
 class SampleCPPooling(nn.Module):
-    def __init__(self, in_fea, hidden, out_class,dropout):
+    def __init__(self, in_fea, hidden, out_class, rank, dropout):
         super(SampleCPPooling, self).__init__()
         #self.cp = CPlayer(in_fea, hidden, 2*hidden)
         #self.fc = FClayer(hidden, out_class)
         #self.cp2 = CPlayer(hidden, out_class, 2)
-        self.conv1 = GraphConv(in_fea, hidden, 2*hidden)
-        self.conv2 = GraphConv(hidden, out_class, 2*out_class)
+        self.conv1 = GraphConv(in_fea, hidden, rank)
+        self.conv2 = GraphConv(hidden, out_class, rank, out=True)
         self.dropout = dropout
 
     def forward(self, mfgs, x):
