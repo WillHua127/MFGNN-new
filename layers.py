@@ -9,50 +9,92 @@ import torch.nn as nn
 
 import dgl.function as fn
 from dgl.nn.pytorch import edge_softmax
+from dgl.utils import expand_as_pair
+
         
-class GATConv(nn.Module):
+class GraphConv(nn.Module):
     def __init__(self,
                  in_feats,
                  out_feats,
-                 num_heads,
-                 negative_slope=0.2):
-        super(GATConv, self).__init__()
-        self._num_heads = num_heads
-        self._in_src_feats = in_feats
+                 rank,
+                 norm='both',
+                 out = False,
+                 weight=True,
+                 bias=True,
+                 activation=None):
+        super(GraphConv, self).__init__()
+        self._in_feats = in_feats
         self._out_feats = out_feats
-        self.fc = nn.Linear(self._in_src_feats, out_feats * num_heads, bias=False)
-        self.attn_l = nn.Parameter(torch.FloatTensor(size=(1, num_heads, out_feats)))
-        self.attn_r = nn.Parameter(torch.FloatTensor(size=(1, num_heads, out_feats)))
-        self.leaky_relu = nn.LeakyReLU(negative_slope)
-    
+        self._norm = norm
+        self._out = out
+        
+        if self._out:
+            self.weight = nn.Parameter(torch.Tensor(in_feats, out_feats))
+        else:
+            self.weight = nn.Parameter(torch.Tensor(in_feats, rank))
+            self.weight2 = nn.Parameter(torch.Tensor(rank, out_feats))
+
         self.reset_parameters()
 
+        self._activation = activation
 
     def reset_parameters(self):
-        nn.init.xavier_uniform_(self.fc.weight)
-        nn.init.xavier_uniform_(self.attn_l)
-        nn.init.xavier_uniform_(self.attn_r)
-    
-            
-    
-    def forward(self, graph, feat):
-        with graph.local_scope():
-            feat_src = feat_dst = self.fc(feat).view(-1, self._num_heads, self._out_feats)#.view(-1, 1, 1)
+        nn.init.xavier_uniform_(self.weight)
+        
+    def _elementwise_product(self, nodes):
+        return {'h':torch.prod(nodes.mailbox['m'],dim=1)}
 
-            el = (feat_src * self.attn_l).sum(dim=-1).unsqueeze(-1)
-            er = (feat_dst * self.attn_r).sum(dim=-1).unsqueeze(-1)
-            graph.srcdata.update({'ft': feat_src, 'el': el})
-            graph.dstdata.update({'er': er})
-            # compute edge attention, el and er are a_l Wh_i and a_r Wh_j respectively.
-            graph.apply_edges(fn.u_add_v('el', 'er', 'e'))
-            e = self.leaky_relu(graph.edata.pop('e'))
-            # compute softmax
-            graph.edata['a'] = edge_softmax(graph, e)
-            # message passing
-            graph.update_all(fn.u_mul_e('ft', 'a', 'm'),
-                             fn.sum('m', 'ft'))
-            
-            rst = graph.dstdata['ft']
+
+    def forward(self, graph, feat, weight=None, edge_weight=None):
+        with graph.local_scope():
+            aggregate_fn = fn.copy_src('h', 'm')
+            if edge_weight is not None:
+                assert edge_weight.shape[0] == graph.number_of_edges()
+                graph.edata['_edge_weight'] = edge_weight
+                aggregate_fn = fn.u_mul_e('h', '_edge_weight', 'm')
+
+            # (BarclayII) For RGCN on heterogeneous graphs we need to support GCN on bipartite.
+            feat_src, feat_dst = expand_as_pair(feat, graph)
+            if self._norm == 'both':
+                degs = graph.out_degrees().float().clamp(min=1)
+                norm = torch.pow(degs, -0.5)
+                shp = norm.shape + (1,) * (feat_src.dim() - 1)
+                norm = torch.reshape(norm, shp)
+                feat_src = feat_src * norm
+
+            weight = self.weight
+
+            if self._in_feats > self._out_feats:
+                # mult W first to reduce the feature size for aggregation.
+                if weight is not None:
+                    feat_src = torch.tanh(torch.matmul(feat_src, weight))
+                graph.srcdata['h'] = feat_src
+                graph.update_all(aggregate_fn, self._elementwise_product)
+                rst = graph.dstdata['h']
+            else:
+                # aggregate first then mult W
+                graph.srcdata['h'] = feat_src
+                graph.update_all(aggregate_fn, self._elementwise_product)
+                rst = graph.dstdata['h']
+                if weight is not None:
+                    rst = torch.matmul(rst, weight)
+                    
+            if not self._out:
+                rst = torch.matmul(rst, self.weight2)
+
+            if self._norm != 'none':
+                degs = graph.in_degrees().float().clamp(min=1)
+                if self._norm == 'both':
+                    norm = torch.pow(degs, -0.5)
+                else:
+                    norm = 1.0 / degs
+                shp = norm.shape + (1,) * (feat_dst.dim() - 1)
+                norm = torch.reshape(norm, shp)
+                rst = rst * norm
+
+            if self._activation is not None:
+                rst = self._activation(rst)
+
             return rst
         
 class GraphConv(nn.Module):
