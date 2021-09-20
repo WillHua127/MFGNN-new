@@ -26,7 +26,8 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
 parser.add_argument('--fastmode', action='store_true', default=False,
                     help='Validate during training pass.')
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
-parser.add_argument('--neighbor', type=int, default=10, help='1layer neighbor.')
+parser.add_argument('--onehop', type=int, default=10, help='1layer neighbor.')
+parser.add_argument('--twohop', type=int, default=10, help='2layer neighbor.')
 parser.add_argument('--epochs', type=int, default=5000,
                     help='Number of epochs to train.')
 parser.add_argument('--lr', type=float, default=0.05,
@@ -120,7 +121,7 @@ def train_ogb():
     lr = [0.05, 0.01,0.002]#,0.01,
     weight_decay = [1e-4,5e-4,5e-5, 5e-3] #5e-5,1e-4,5e-4,1e-3,5e-3
     dropout = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5 ,0.6, 0.7, 0.8, 0.9]
-    sampler = dgl.dataloading.MultiLayerNeighborSampler([args.neighbor])
+    sampler = dgl.dataloading.MultiLayerNeighborSampler([args.onehop, args.twohop])
 
     for args.lr, args.weight_decay in itertools.product(lr, weight_decay):
         #result = np.zeros(10)
