@@ -6,6 +6,7 @@ from dgl.nn.pytorch.glob import SumPooling, AvgPooling, MaxPooling
 import torch
 from torch.nn.parameter import Parameter
 import dgl.function as fn
+from dgl.utils import expand_as_pair
 
 
 class FALayer(nn.Module):
@@ -324,5 +325,124 @@ class TwoCPPooling(nn.Module):
         fea = F.dropout(fea, self.dropout, training=self.training)
         out = self.fc(fea)
         return out
-
     
+    
+class GCCONV(nn.Module):
+    def __init__(self,
+                 in_feats,
+                 out_feats,
+                 norm='both',
+                 weight=True,
+                 bias=True,
+                 activation=None):
+        super(GCCONV, self).__init__()
+        self._in_feats = in_feats
+        self._out_feats = out_feats
+        self._norm = norm
+        
+        self.weight = nn.Parameter(torch.Tensor(in_feats, out_feats))
+
+        self.reset_parameters()
+        self._activation = activation
+
+    def reset_parameters(self):
+        nn.init.xavier_uniform_(self.weight)
+        
+    def _elementwise_sum(self, nodes):
+        return {'h':torch.sum(nodes.mailbox['m'],dim=1)}
+
+
+    def forward(self, graph, feat, weight=None, edge_weight=None):
+        with graph.local_scope():
+            aggregate_fn = fn.copy_src('h', 'm')
+            if edge_weight is not None:
+                assert edge_weight.shape[0] == graph.number_of_edges()
+                graph.edata['_edge_weight'] = edge_weight
+                aggregate_fn = fn.u_mul_e('h', '_edge_weight', 'm')
+
+            # (BarclayII) For RGCN on heterogeneous graphs we need to support GCN on bipartite.
+            feat_src, feat_dst = expand_as_pair(feat, graph)
+            if self._norm == 'both':
+                degs = graph.out_degrees().float().clamp(min=1)
+                norm = torch.pow(degs, -0.5)
+                shp = norm.shape + (1,) * (feat_src.dim() - 1)
+                norm = torch.reshape(norm, shp)
+                feat_src = feat_src * norm
+
+            weight = self.weight
+
+            if self._in_feats > self._out_feats:
+                if weight is not None:
+                    feat_src = torch.tanh(torch.matmul(feat_src, weight))
+                graph.srcdata['h'] = feat_src
+                graph.update_all(aggregate_fn, self._elementwise_sum)
+                rst = graph.dstdata['h']
+            else:
+                # aggregate first then mult W
+                graph.srcdata['h'] = feat_src
+                graph.update_all(aggregate_fn, self._elementwise_sum)
+                rst = graph.dstdata['h']
+                if weight is not None:
+                    rst = torch.matmul(rst, weight)
+                    
+
+            if self._norm != 'none':
+                degs = graph.in_degrees().float().clamp(min=1)
+                if self._norm == 'both':
+                    norm = torch.pow(degs, -0.5)
+                else:
+                    norm = 1.0 / degs
+                shp = norm.shape + (1,) * (feat_dst.dim() - 1)
+                norm = torch.reshape(norm, shp)
+                rst = rst * norm
+                
+                
+            if self._activation is not None:
+                rst = self._activation(rst)
+
+            return rst
+        
+
+class graph_cp_pooling(nn.Module):
+    def __init__(self, in_fea, hidden, rank):
+        super(graph_cp_pooling, self).__init__()
+        self.W = nn.Linear(in_fea, rank)
+        self.V = nn.Linear(rank, hidden)
+
+    def forward(self, x):
+        fea = self.W(x)
+        fea = torch.prod(fea,0).unsqueeze(0)
+        #readout = self.V(fea)
+        return fea
+
+class GraphCPPooling(nn.Module):
+    def __init__(self, input_dim, hidden_dim, rank_dim, output_dim, final_dropout, device):
+        super(GraphCPPooling, self).__init__()
+
+        self.final_dropout = final_dropout
+        self.device = device
+
+        ###List of MLPs
+        self.conv1 = GCCONV(input_dim, hidden_dim)
+
+        self.linears_prediction = torch.nn.ModuleList()
+        self.cppools = torch.nn.ModuleList()
+        self.linears_prediction.append(nn.Linear(rank_dim, output_dim))
+        self.cppools.append(graph_cp_pooling(hidden_dim+1, hidden_dim, rank_dim))
+
+
+    def forward(self, batch_graph):
+        node_feat = [graph.ndata['feat'].to(self.device) for graph in batch_graph]
+        edge_feat = [graph.edata['feat'].float().to(self.device) for graph in batch_graph]
+        if edge_feat is not None:
+            out = [self.conv1(batch_graph[i], node_feat[i], edge_weight=edge_feat[i]) for i in range(len(node_feat))]
+        else:
+            out = [self.conv1(batch_graph[i], node_feat[i]) for i in range(len(node_feat))]
+        hidden_rep_list = [torch.cat([self.cppools[0](torch.hstack([out[idx], torch.ones([out[idx].shape[0],1])])) for idx in range(len(batch_graph))],0)]
+
+        score_over_layer = 0
+
+        for layer, h in enumerate(hidden_rep_list):
+            score_over_layer += F.dropout(self.linears_prediction[layer](h), self.final_dropout, training = self.training)
+
+        return score_over_layer  
