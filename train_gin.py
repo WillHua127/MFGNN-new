@@ -7,7 +7,7 @@ import numpy as np
 
 from tqdm import tqdm
 
-from util import load_data, separate_data
+from utils import load_data, separate_data
 from models import GraphCPPooling
 
 from ogb.graphproppred import DglGraphPropPredDataset,collate_dgl
