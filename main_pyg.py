@@ -80,9 +80,9 @@ def train(model, device, loader, optimizer, task_type):
             ## ignore nan targets (unlabeled) when computing training loss.
             is_labeled = batch.y == batch.y
             if "classification" in task_type: 
-                loss = cls_criterion(pred.to(torch.float32)[is_labeled], batch.y.to(torch.float32)[is_labeled].to(device))
+                loss = cls_criterion(pred.to(torch.float32)[is_labeled], batch.y.to(device).to(torch.float32)[is_labeled])
             else:
-                loss = reg_criterion(pred.to(torch.float32)[is_labeled], batch.y.to(torch.float32)[is_labeled].to(device))
+                loss = reg_criterion(pred.to(torch.float32)[is_labeled], batch.y.to(device).to(torch.float32)[is_labeled])
             loss.backward()
             optimizer.step()
 
