@@ -79,7 +79,7 @@ class GNN(torch.nn.Module):
         self.GraphCP = graph_cp_pooling(self.emb_dim, self.rank_dim)
 
     #def forward(self, batched_data):
-    def forward(self, x, e_idx, batch_len, e_attr=None):
+    def forward(self, x, e_idx, e_attr=None):
         #h_node = self.gnn_node(batched_data)
         h_node = self.gnn_node(x, e_idx, e_attr)
         #h_node = h_node.to_data_list()
