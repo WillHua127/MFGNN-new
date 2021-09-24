@@ -47,6 +47,7 @@ class GNN(torch.nn.Module):
         self.graph_pooling = graph_pooling
         self.rank_dim = rank_dim
         self.device = device
+        print(self.device)
 
         if self.num_layer < 2:
             raise ValueError("Number of GNN layers must be greater than 1.")
