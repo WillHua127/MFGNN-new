@@ -113,7 +113,7 @@ class GNN_node(torch.nn.Module):
         ### computing input node embedding
 
         #h_list = [self.atom_encoder(x)]
-        h_list = [self.atom_encoder(x_i) for x_i in x]
+        h_list = [self.atom_encoder(x_i.to(self.device)) for x_i in x]
         for layer in range(self.num_layer):
 
             #h = self.convs[layer](h_list[layer], edge_index, edge_attr)
