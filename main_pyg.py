@@ -137,7 +137,7 @@ def main():
                         help='number of GNN message passing layers (default: 5)')
     parser.add_argument('--emb_dim', type=int, default=300,
                         help='dimensionality of hidden units in GNNs (default: 300)')
-    parser.add_argument('--batch_size', type=int, default=32,
+    parser.add_argument('--batch_size', type=int, default=16,
                         help='input batch size for training (default: 32)')
     parser.add_argument('--epochs', type=int, default=500,
                         help='number of epochs to train (default: 100)')
