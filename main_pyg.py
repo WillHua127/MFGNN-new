@@ -182,6 +182,7 @@ def main():
         model = GNN(gnn_type = 'gcn', num_tasks = dataset.num_tasks, num_layer = args.num_layer, emb_dim = args.emb_dim, drop_ratio = args.drop_ratio, virtual_node = True).to(device)
     else:
         raise ValueError('Invalid GNN type')
+    print(next(model.parameters()).device)
 
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
