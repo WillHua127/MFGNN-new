@@ -81,6 +81,7 @@ class GNN(torch.nn.Module):
 
     #def forward(self, batched_data):
     def forward(self, x, e_idx, e_attr=None):
+        x, e_idx, e_attr = [x_i.to(self.device) for x_i in x], [e_i.to(self.device) for e_i in e_idx], [ea_i.to(self.device) for ea_i in e_attr]
         #h_node = self.gnn_node(batched_data)
         h_node = self.gnn_node(x, e_idx, e_attr)
         #h_node = h_node.to_data_list()
