@@ -95,7 +95,7 @@ def eval(model, device, loader, evaluator):
 
     for step, batch in enumerate(tqdm(loader, desc="Iteration")):
         batch = batch.to(device)
-        batch_data = batch.to_data_list()
+        batch_data = batch.to_data_list().to(device)
         x = [data.x.to(device) for data in batch_data]
         edge_index = [data.edge_index.to(device) for data in batch_data]
         edge_attr = [data.edge_attr.to(device) for data in batch_data]
