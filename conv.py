@@ -113,16 +113,19 @@ class GNN_node(torch.nn.Module):
         ### computing input node embedding
 
         #h_list = [self.atom_encoder(x)]
-        h_list = [self.atom_encoder(x_i.to(self.device)) for x_i in x]
+        #h_list = [self.atom_encoder(x_i.to(self.device)) for x_i in x]
+        h_list = [self.atom_encoder(x_i) for x_i in x]
         for layer in range(self.num_layer):
 
             #h = self.convs[layer](h_list[layer], edge_index, edge_attr)
             if edge_attr is None:
                 h = [self.convs[layer](h_list[idx], edge_index[idx]) for idx in range(len(x))]
             else:
-                h = [self.convs[layer](h_list[idx].to(self.device), edge_index[idx].to(self.device), edge_attr[idx].to(self.device)) for idx in range(len(x))]
+                #h = [self.convs[layer](h_list[idx].to(self.device), edge_index[idx].to(self.device), edge_attr[idx].to(self.device)) for idx in range(len(x))]
+                h = [self.convs[layer](h_list[idx], edge_index[idx], edge_attr[idx]) for idx in range(len(x))]
             #h = self.batch_norms[layer](h)
-            h = [self.batch_norms[layer](h_i.to(self.device)) for h_i in h]
+            #h = [self.batch_norms[layer](h_i.to(self.device)) for h_i in h]
+            h = [self.batch_norms[layer](h_i) for h_i in h]
 
             if layer == self.num_layer - 1:
                 #remove relu for the last layer
