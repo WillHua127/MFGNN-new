@@ -106,7 +106,7 @@ class GNN_node(torch.nn.Module):
     #def forward(self, batched_data):
     def forward(self, x, edge_index, edge_attr=None):
         #batched_data = batched_data.to_data_list()
-        x, edge_index, edge_attr = x.to(self.device), edge_index.to(self.device), edge_attr.to(self.device)
+        #x, edge_index, edge_attr = x.to(self.device), edge_index.to(self.device), edge_attr.to(self.device)
         #x = [data.x for data in batched_data]
         #edge_index = [data.edge_index for data in batched_data]
         #edge_attr = [data.edge_attr for data in batched_data]
