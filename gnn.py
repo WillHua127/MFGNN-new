@@ -30,7 +30,7 @@ def sum_pool(x):
 
 class GNN(torch.nn.Module):
 
-    def __init__(self, num_tasks, num_layer = 5, emb_dim = 300, rank_dim = 64,
+    def __init__(self, num_tasks, device, num_layer = 5, emb_dim = 300, rank_dim = 64,
                     gnn_type = 'gin', virtual_node = True, residual = False, drop_ratio = 0.5, JK = "last", graph_pooling = "sum"):
         '''
             num_tasks (int): number of labels to be predicted
@@ -46,6 +46,7 @@ class GNN(torch.nn.Module):
         self.num_tasks = num_tasks
         self.graph_pooling = graph_pooling
         self.rank_dim = rank_dim
+        self.device = device
 
         if self.num_layer < 2:
             raise ValueError("Number of GNN layers must be greater than 1.")
@@ -54,7 +55,7 @@ class GNN(torch.nn.Module):
         if virtual_node:
             self.gnn_node = GNN_node_Virtualnode(num_layer, emb_dim, JK = JK, drop_ratio = drop_ratio, residual = residual, gnn_type = gnn_type)
         else:
-            self.gnn_node = GNN_node(num_layer, emb_dim, JK = JK, drop_ratio = drop_ratio, residual = residual, gnn_type = gnn_type)
+            self.gnn_node = GNN_node(num_layer, device=device, emb_dim, JK = JK, drop_ratio = drop_ratio, residual = residual, gnn_type = gnn_type)
 
 
         ### Pooling function to generate whole-graph embeddings
