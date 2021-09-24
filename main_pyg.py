@@ -72,9 +72,9 @@ def train(model, device, loader, optimizer, task_type):
         x = [data.x.to(device) for data in batch_data]
         edge_index = [data.edge_index.to(device) for data in batch_data]
         edge_attr = [data.edge_attr.to(device) for data in batch_data]
-        x = [data.x for data in batch_data]
-        edge_index = [data.edge_index for data in batch_data]
-        edge_attr = [data.edge_attr for data in batch_data]
+        #x = [data.x for data in batch_data]
+        #edge_index = [data.edge_index for data in batch_data]
+        #edge_attr = [data.edge_attr for data in batch_data]
 
         if batch.x.shape[0] == 1 or batch.batch[-1] == 0:
             pass
@@ -102,9 +102,9 @@ def eval(model, device, loader, evaluator):
         x = [data.x.to(device) for data in batch_data]
         edge_index = [data.edge_index.to(device) for data in batch_data]
         edge_attr = [data.edge_attr.to(device) for data in batch_data]
-        x = [data.x for data in batch_data]
-        edge_index = [data.edge_index for data in batch_data]
-        edge_attr = [data.edge_attr for data in batch_data]
+        #x = [data.x for data in batch_data]
+        #edge_index = [data.edge_index for data in batch_data]
+        #edge_attr = [data.edge_attr for data in batch_data]
 
         if batch.x.shape[0] == 1:
             pass
