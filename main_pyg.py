@@ -153,7 +153,7 @@ def main():
                         help='number of iterations per each epoch (default: 50)')
     args = parser.parse_args()
 
-    device = torch.device("cuda:" + str(args.device)) if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device("cuda:" + str(args.device))# if torch.cuda.is_available() else torch.device("cpu")
 
     ### automatic dataloading and splitting
     dataset = PygGraphPropPredDataset(name = "ogbg-"+args.dataset, root = 'torch_geometric_data/') 
