@@ -70,7 +70,7 @@ class GNN_node(torch.nn.Module):
     Output:
         node representations
     """
-    def __init__(self, num_layer, emb_dim, drop_ratio = 0.5, JK = "last", residual = False, gnn_type = 'gin'):
+    def __init__(self, num_layer, device, emb_dim, drop_ratio = 0.5, JK = "last", residual = False, gnn_type = 'gin'):
         '''
             emb_dim (int): node embedding dimensionality
             num_layer (int): number of GNN message passing layers
@@ -82,6 +82,7 @@ class GNN_node(torch.nn.Module):
         self.JK = JK
         ### add residual connection or not
         self.residual = residual
+        self.device = device
 
         if self.num_layer < 2:
             raise ValueError("Number of GNN layers must be greater than 1.")
@@ -121,7 +122,7 @@ class GNN_node(torch.nn.Module):
             else:
                 h = [self.convs[layer](h_list[idx], edge_index[idx], edge_attr[idx]) for idx in range(len(x))]
             #h = self.batch_norms[layer](h)
-            h = [self.batch_norms[layer](h_i) for h_i in h]
+            h = [self.batch_norms[layer](h_i.to(self.device)) for h_i in h]
 
             if layer == self.num_layer - 1:
                 #remove relu for the last layer
