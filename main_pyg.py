@@ -69,9 +69,9 @@ def train(model, device, loader, optimizer, task_type):
         batch = batch.to(device)
         batch_data = batch.to_data_list()#.to(device)
         #x, edge_index, edge_attr, batch = batched_data.x, batched_data.edge_index, batched_data.edge_attr, batched_data.batch
-        #x = [data.x.to(device) for data in batch_data]
-        #edge_index = [data.edge_index.to(device) for data in batch_data]
-        #edge_attr = [data.edge_attr.to(device) for data in batch_data]
+        x = [data.x.to(device) for data in batch_data]
+        edge_index = [data.edge_index.to(device) for data in batch_data]
+        edge_attr = [data.edge_attr.to(device) for data in batch_data]
         x = [data.x for data in batch_data]
         edge_index = [data.edge_index for data in batch_data]
         edge_attr = [data.edge_attr for data in batch_data]
@@ -99,9 +99,9 @@ def eval(model, device, loader, evaluator):
     for step, batch in enumerate(tqdm(loader, desc="Iteration")):
         batch = batch.to(device)
         batch_data = batch.to_data_list()#.to(device)
-        #x = [data.x.to(device) for data in batch_data]
-        #edge_index = [data.edge_index.to(device) for data in batch_data]
-        #edge_attr = [data.edge_attr.to(device) for data in batch_data]
+        x = [data.x.to(device) for data in batch_data]
+        edge_index = [data.edge_index.to(device) for data in batch_data]
+        edge_attr = [data.edge_attr.to(device) for data in batch_data]
         x = [data.x for data in batch_data]
         edge_index = [data.edge_index for data in batch_data]
         edge_attr = [data.edge_attr for data in batch_data]
