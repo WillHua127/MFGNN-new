@@ -125,7 +125,7 @@ class GNN_node(torch.nn.Module):
             h = [self.convs[layer](h_list[idx], edge_index[idx], edge_attr[idx]) for idx in range(len(x))]
             #h = self.batch_norms[layer](h)
             #h = [self.batch_norms[layer](h_i.to(self.device)) for h_i in h]
-            h = [self.batch_norms[layer](h_i) for h_i in h]
+            #h = [self.batch_norms[layer](h_i) for h_i in h]
 
             if layer == self.num_layer - 1:
                 #remove relu for the last layer
