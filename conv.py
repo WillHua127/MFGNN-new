@@ -120,7 +120,7 @@ class GNN_node(torch.nn.Module):
             if edge_attr is None:
                 h = [self.convs[layer](h_list[idx], edge_index[idx]) for idx in range(len(x))]
             else:
-                h = [self.convs[layer](h_list[idx], edge_index[idx], edge_attr[idx]) for idx in range(len(x))]
+                h = [self.convs[layer](h_list[idx].to(self.device), edge_index[idx].to(self.device), edge_attr[idx].to(self.device)) for idx in range(len(x))]
             #h = self.batch_norms[layer](h)
             h = [self.batch_norms[layer](h_i.to(self.device)) for h_i in h]
 
