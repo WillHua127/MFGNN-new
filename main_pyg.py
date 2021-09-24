@@ -8,12 +8,12 @@ from tqdm import tqdm
 import argparse
 import time
 import numpy as np
-import os 
+#import os 
 
 ### importing OGB
 from ogb.graphproppred import PygGraphPropPredDataset, Evaluator
 
-os.environ['CUDA_LAUNCH_BLOCKING'] = 1
+#os.environ['CUDA_LAUNCH_BLOCKING'] = 1
 cls_criterion = torch.nn.BCEWithLogitsLoss()
 reg_criterion = torch.nn.MSELoss()
 
