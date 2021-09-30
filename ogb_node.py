@@ -383,7 +383,7 @@ if __name__ == '__main__':
     argparser.add_argument('--rank', type=int, default=256)
     args = argparser.parse_args()
     
-    args.cuda = not args.no_cuda and torch.cuda.is_available()
+    args.cuda = not args.no_cuda and th.cuda.is_available()
     if args.gpu >= 0:
         device = th.device('cuda:%d' % args.gpu)
     else:
