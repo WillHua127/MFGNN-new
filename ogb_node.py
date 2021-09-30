@@ -364,7 +364,7 @@ if __name__ == '__main__':
                     help='Disables CUDA training.')
     argparser.add_argument('--gpu', type=int, default=0,
         help="GPU device ID. Use -1 for CPU training")
-    argparser.add_argument('--num-epochs', type=int, default=2)
+    argparser.add_argument('--num-epochs', type=int, default=2000)
     argparser.add_argument('--num-hidden', type=int, default=256)
     argparser.add_argument('--num-layers', type=int, default=2)
     argparser.add_argument('--fan-out', type=str, default='5,10')
@@ -380,7 +380,7 @@ if __name__ == '__main__':
         help="Number of sampling processes. Use 0 for no extra process.")
     argparser.add_argument('--save-pred', type=str, default='')
     argparser.add_argument('--wd', type=float, default=0)
-    argparser.add_argument('--rank', type=int, default=256)
+    argparser.add_argument('--rank', type=int, default=512)
     args = argparser.parse_args()
     
     args.cuda = not args.no_cuda and th.cuda.is_available()
@@ -399,7 +399,7 @@ if __name__ == '__main__':
         val_idx = val_idx.cuda()
         test_idx = test_idx.cuda()
     graph, labels = data[0]
-    graph = graph.to(device)
+    #graph = graph.to(device)
     if args.dataset == "arxiv":
         graph = dgl.add_reverse_edges(graph, copy_ndata=True)
         graph = dgl.add_self_loop(graph)
