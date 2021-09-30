@@ -401,7 +401,7 @@ if __name__ == '__main__':
     graph, labels = data[0]
     #graph = graph.to(device)
     if args.dataset == "arxiv":
-        graph = dgl.add_reverse_edges(graph, copy_ndata=True)
+        #graph = dgl.add_reverse_edges(graph, copy_ndata=True)
         graph = dgl.add_self_loop(graph)
         graph.ndata['feat'] = graph.ndata['feat'].float()
     elif args.dataset == "ogbn-mag":
