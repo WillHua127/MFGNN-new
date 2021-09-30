@@ -21,6 +21,7 @@ class DGLGraphConv(nn.Module):
     def __init__(self,
                  in_feats,
                  out_feats,
+                 rank_dim,
                  norm='both',
                  weight=True,
                  bias=True,
@@ -32,19 +33,17 @@ class DGLGraphConv(nn.Module):
                            ' But got "{}".'.format(norm))
         self._in_feats = in_feats
         self._out_feats = out_feats
+        self._rank_dim = rank_dim
         self._norm = norm
         self._allow_zero_in_degree = allow_zero_in_degree
 
         if weight:
-            self.weight = nn.Parameter(th.Tensor(in_feats, out_feats))
-            self.weight2 = nn.Parameter(th.Tensor(out_feats, out_feats))
+            self.weight = nn.Parameter(th.Tensor(in_feats, rank_dim))
+            self.weight2 = nn.Parameter(th.Tensor(rank_dim, out_feats))
+            self.bias = nn.Parameter(th.Tensor(rank_dim))
         else:
             self.register_parameter('weight', None)
 
-        if bias:
-            self.bias = nn.Parameter(th.Tensor(out_feats))
-        else:
-            self.register_parameter('bias', None)
 
         self.reset_parameters()
 
@@ -143,6 +142,7 @@ class SampleCPPooling(nn.Module):
     def __init__(self,
                  in_feats,
                  n_hidden,
+                 n_rank,
                  n_classes,
                  n_layers,
                  activation,
@@ -150,12 +150,13 @@ class SampleCPPooling(nn.Module):
         super().__init__()
         self.n_layers = n_layers
         self.n_hidden = n_hidden
+        self.n_rank = n_rank
         self.n_classes = n_classes
         self.layers = nn.ModuleList()
-        self.layers.append(DGLGraphConv(in_feats, n_hidden))
+        self.layers.append(DGLGraphConv(in_feats, n_hidden, n_rank))
         for i in range(1, n_layers - 1):
-            self.layers.append(DGLGraphConv(n_hidden, n_hidden))
-        self.layers.append(DGLGraphConv(n_hidden, n_classes))
+            self.layers.append(DGLGraphConv(n_hidden, n_hidden, n_rank))
+        self.layers.append(DGLGraphConv(n_hidden, n_classes, n_rank))
         self.dropout = nn.Dropout(dropout)
         self.activation = activation
 
@@ -269,7 +270,7 @@ def run(args, device, data, evaluator):
         num_workers=args.num_workers)
 
     # Define model and optimizer
-    model = SampleCPPooling(in_feats, args.num_hidden, n_classes, args.num_layers, F.relu, args.dropout)
+    model = SampleCPPooling(in_feats, args.num_hidden, args.rank, n_classes, args.num_layers, F.relu, args.dropout)
     model = model.to(device)
     loss_fcn = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
@@ -330,7 +331,7 @@ if __name__ == '__main__':
                     help='Disables CUDA training.')
     argparser.add_argument('--gpu', type=int, default=0,
         help="GPU device ID. Use -1 for CPU training")
-    argparser.add_argument('--num-epochs', type=int, default=100)
+    argparser.add_argument('--num-epochs', type=int, default=2)
     argparser.add_argument('--num-hidden', type=int, default=256)
     argparser.add_argument('--num-layers', type=int, default=2)
     argparser.add_argument('--fan-out', type=str, default='5,10')
@@ -346,6 +347,7 @@ if __name__ == '__main__':
         help="Number of sampling processes. Use 0 for no extra process.")
     argparser.add_argument('--save-pred', type=str, default='')
     argparser.add_argument('--wd', type=float, default=0)
+    argparser.add_argument('--rank', type=int, default=256)
     args = argparser.parse_args()
     
     if args.gpu >= 0:
@@ -375,7 +377,8 @@ if __name__ == '__main__':
     # Run 10 times
     test_accs = []
     for i in range(5):
-        test_accs.append(run(args, device, data, evaluator).cpu().numpy())
+        test_accs.append(run(args, device, data, evaluator))
         print('Average test accuracy:', np.mean(test_accs), '±', np.std(test_accs))
+        print('hidden/dropout/wd/rank:', args.num_hidden, ',', args.dropout,',',args.wd,',',args.rank)
 
 
