@@ -394,10 +394,10 @@ if __name__ == '__main__':
     data = DglNodePropPredDataset(name = "ogbn-"+args.dataset, root = 'torch_geometric_data/')
     splitted_idx = data.get_idx_split()
     train_idx, val_idx, test_idx = splitted_idx['train'], splitted_idx['valid'], splitted_idx['test']
-    if args.cuda:
-        train_idx = train_idx.cuda()
-        val_idx = val_idx.cuda()
-        test_idx = test_idx.cuda()
+#     if args.cuda:
+#         train_idx = train_idx.cuda()
+#         val_idx = val_idx.cuda()
+#         test_idx = test_idx.cuda()
     graph, labels = data[0]
     #graph = graph.to(device)
     if args.dataset == "arxiv":
