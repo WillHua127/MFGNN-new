@@ -251,6 +251,39 @@ def load_subtensor(nfeat, labels, seeds, input_nodes):
     batch_labels = labels[seeds]
     return batch_inputs, batch_labels
 
+def convert_mag_to_homograph(g, device):
+    """
+    Featurize node types that don't have input features (i.e. author,
+    institution, field_of_study) by averaging their neighbor features.
+    Then convert the graph to a undirected homogeneous graph.
+    """
+    src_writes, dst_writes = g.all_edges(etype="writes")
+    src_topic, dst_topic = g.all_edges(etype="has_topic")
+    src_aff, dst_aff = g.all_edges(etype="affiliated_with")
+    new_g = dgl.heterograph({
+        ("paper", "written", "author"): (dst_writes, src_writes),
+        ("paper", "has_topic", "field"): (src_topic, dst_topic),
+        ("author", "aff", "inst"): (src_aff, dst_aff)
+    })
+    new_g = new_g.to(device)
+    new_g.nodes["paper"].data["feat"] = g.nodes["paper"].data["feat"]
+    new_g["written"].update_all(fn.copy_u("feat", "m"), fn.mean("m", "feat"))
+    new_g["has_topic"].update_all(fn.copy_u("feat", "m"), fn.mean("m", "feat"))
+    new_g["aff"].update_all(fn.copy_u("feat", "m"), fn.mean("m", "feat"))
+    g.nodes["author"].data["feat"] = new_g.nodes["author"].data["feat"]
+    g.nodes["institution"].data["feat"] = new_g.nodes["inst"].data["feat"]
+    g.nodes["field_of_study"].data["feat"] = new_g.nodes["field"].data["feat"]
+
+    # Convert to homogeneous graph
+    # Get DGL type id for paper type
+    target_type_id = g.get_ntype_id("paper")
+    g = dgl.to_homogeneous(g, ndata=["feat"])
+    g = dgl.add_reverse_edges(g, copy_ndata=True)
+    # Mask for paper nodes
+    g.ndata["target_mask"] = g.ndata[dgl.NTYPE] == target_type_id
+    return g
+
+
 #### Entry point
 def run(args, device, data, evaluator):
     # Unpack data
@@ -361,7 +394,20 @@ if __name__ == '__main__':
     splitted_idx = data.get_idx_split()
     train_idx, val_idx, test_idx = splitted_idx['train'], splitted_idx['valid'], splitted_idx['test']
     graph, labels = data[0]
-    graph = dgl.add_self_loop(graph)
+    graph = graph.to(device)
+    if args.dataset == "arxiv":
+        graph = dgl.add_reverse_edges(graph, copy_ndata=True)
+        graph = dgl.add_self_loop(graph)
+        graph.ndata['feat'] = graph.ndata['feat'].float()
+    elif args.dataset == "ogbn-mag":
+        labels = labels["paper"]
+        train_idx = train_idx["paper"]
+        val_idx = val_idx["paper"]
+        test_idx = test_idx["paper"]
+        g = convert_mag_to_homograph(g, device)
+    else:
+        graph.ndata['feat'] = graph.ndata['feat'].float()
+
     nfeat = graph.ndata.pop('feat').to(device)
     labels = labels[:, 0].to(device)
 
