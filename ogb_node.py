@@ -364,7 +364,7 @@ if __name__ == '__main__':
                     help='Disables CUDA training.')
     argparser.add_argument('--gpu', type=int, default=0,
         help="GPU device ID. Use -1 for CPU training")
-    argparser.add_argument('--num-epochs', type=int, default=2000)
+    argparser.add_argument('--num-epochs', type=int, default=300)
     argparser.add_argument('--num-hidden', type=int, default=256)
     argparser.add_argument('--num-layers', type=int, default=2)
     argparser.add_argument('--fan-out', type=str, default='5,10')
