@@ -411,6 +411,7 @@ if __name__ == '__main__':
         test_idx = test_idx["paper"]
         g = convert_mag_to_homograph(g, device)
     else:
+        graph = dgl.add_self_loop(graph)
         graph.ndata['feat'] = graph.ndata['feat'].float()
 
     nfeat = graph.ndata.pop('feat').to(device)
