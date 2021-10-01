@@ -428,7 +428,7 @@ if __name__ == '__main__':
 
     # Run 10 times
     test_accs = []
-    for i in range(5):
+    for i in range(3):
         test_accs.append(run(args, device, data, evaluator))
         print('Average test accuracy:', np.mean(test_accs), '±', np.std(test_accs))
         print('hidden/dropout/wd/rank:', args.num_hidden, ',', args.dropout,',',args.wd,',',args.rank)
