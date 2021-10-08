@@ -36,6 +36,7 @@ class DGLGraphConv(nn.Module):
         self._rank_dim = rank_dim
         self._norm = norm
         self._allow_zero_in_degree = allow_zero_in_degree
+        self.bn = nn.BatchNorm1d(rank_dim)
 
         if weight:
             self.weight = nn.Parameter(th.Tensor(in_feats, rank_dim))
