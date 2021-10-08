@@ -40,7 +40,7 @@ class DGLGraphConv(nn.Module):
         if weight:
             self.weight = nn.Parameter(th.Tensor(in_feats, rank_dim))
             self.weight2 = nn.Parameter(th.Tensor(rank_dim, out_feats))
-            self.bias = nn.Parameter(th.Tensor(rank_dim))
+            #self.bias = nn.Parameter(th.Tensor(rank_dim))
         else:
             self.register_parameter('weight', None)
 
@@ -57,10 +57,10 @@ class DGLGraphConv(nn.Module):
             #nn.init.normal(self.weight, mean=0, std=1)
             #nn.init.constant(tensor, val)
         #if self.bias is not None:
-            nn.init.zeros_(self.bias)
+            #nn.init.zeros_(self.bias)
     
     def _elementwise_product(self, nodes):
-        return {'h':th.prod(nodes.mailbox['m'],dim=1)}
+        return {'h':th.prod(nodes.mailbox['m'],dim=1)+th.sum(nodes.mailbox['m'],dim=1)}
 
 
     def set_allow_zero_in_degree(self, set_value):
@@ -107,7 +107,7 @@ class DGLGraphConv(nn.Module):
                 # mult W first to reduce the feature size for aggregation.
                 if weight is not None:
                     feat_src = th.matmul(feat_src, weight)
-                graph.srcdata['h'] = th.tanh(feat_src)+self.bias#torch.tanh(feat_src)
+                graph.srcdata['h'] = th.tanh(feat_src)#+self.bias#torch.tanh(feat_src)
                 graph.update_all(aggregate_fn, self._elementwise_product)
                 rst = graph.dstdata['h']
             else:
