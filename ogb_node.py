@@ -39,8 +39,9 @@ class DGLGraphConv(nn.Module):
         self.bn = nn.BatchNorm1d(rank_dim)
 
         if weight:
-            self.weight = nn.Parameter(th.Tensor(in_feats, rank_dim))
+            self.weight = nn.Parameter(th.Tensor(in_feats+1, rank_dim))
             self.weight2 = nn.Parameter(th.Tensor(rank_dim, out_feats))
+            self.weight_sum = nn.Parameter(th.Tensor(in_feats, out_feats))
             #self.bias = nn.Parameter(th.Tensor(rank_dim))
         else:
             self.register_parameter('weight', None)
@@ -54,6 +55,7 @@ class DGLGraphConv(nn.Module):
         if self.weight is not None:
             nn.init.xavier_uniform_(self.weight)
             nn.init.xavier_uniform_(self.weight2)
+            nn.init.xavier_uniform_(self.weight_sum)
             #nn.init.kaiming_uniform(self.weight, mode='fan_in')
             #nn.init.normal(self.weight, mean=0, std=1)
             #nn.init.constant(tensor, val)
@@ -61,7 +63,10 @@ class DGLGraphConv(nn.Module):
             #nn.init.zeros_(self.bias)
     
     def _elementwise_product(self, nodes):
-        return {'h':th.prod(nodes.mailbox['m'],dim=1)+th.sum(nodes.mailbox['m'],dim=1)}
+        return {'h_prod':th.prod(nodes.mailbox['m_prod'],dim=1)}
+    
+    def _elementwise_sum(self, nodes):
+        return {'h_sum':th.sum(nodes.mailbox['m_sum'],dim=1)}
 
 
     def set_allow_zero_in_degree(self, set_value):
@@ -81,7 +86,7 @@ class DGLGraphConv(nn.Module):
                                    'the issue. Setting ``allow_zero_in_degree`` '
                                    'to be `True` when constructing this module will '
                                    'suppress the check and let the code run.')
-            aggregate_fn = fn.copy_src('h', 'm')
+            #aggregate_fn = fn.copy_src('h', 'm')
             if edge_weight is not None:
                 assert edge_weight.shape[0] == graph.number_of_edges()
                 graph.edata['_edge_weight'] = edge_weight
@@ -104,24 +109,20 @@ class DGLGraphConv(nn.Module):
             else:
                 weight = self.weight
 
-            if self._in_feats > self._out_feats:
-                # mult W first to reduce the feature size for aggregation.
-                if weight is not None:
-                    feat_src = th.matmul(feat_src, weight)
-                graph.srcdata['h'] = th.tanh(feat_src)#+self.bias#torch.tanh(feat_src)
-                graph.update_all(aggregate_fn, self._elementwise_product)
-                rst = graph.dstdata['h']
-            else:
-                # aggregate first then mult W
-                graph.srcdata['h'] = feat_src
-                graph.update_all(aggregate_fn, self._elementwise_product)
-                rst = graph.dstdata['h']
-                if weight is not None:
-                    rst = th.matmul(rst, weight)
+            feat_prod_src = th.cat((feat_src, th.ones([feat_src.shape[0],1])),1)
+            # mult W first to reduce the feature size for aggregation.
+            if weight is not None:
+                feat_prod_src = th.matmul(feat_prod_src, weight)
+                feat_sum_src = th.matmul(feat_src, self.weight_sum)
+            graph.srcdata['h_prod'] = th.tanh(feat_prod_src)#+self.bias#torch.tanh(feat_src)
+            graph.srcdata['h_sum'] = feat_sum_src
+            graph.update_all(fn.copy_src('h_prod', 'm_prod'), self._elementwise_product)
+            graph.update_all(fn.copy_src('h_sum', 'm_sum'), self._elementwise_sum)
+            rst = graph.dstdata['h_prod']
                     
-            rst = self.bn(rst)
+            #rst = self.bn(rst)
 
-            rst = th.matmul(rst, self.weight2)
+            rst = th.matmul(rst, self.weight2)+graph.dstdata['h_sum']
             if self._norm != 'none':
                 degs = graph.in_degrees().float().clamp(min=1)
                 if self._norm == 'both':
