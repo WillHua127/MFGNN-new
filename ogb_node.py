@@ -109,7 +109,7 @@ class DGLGraphConv(nn.Module):
             else:
                 weight = self.weight
 
-            feat_prod_src = th.cat((feat_src, th.ones([feat_src.shape[0],1])),1)
+            feat_prod_src = th.cat((feat_src, th.ones([feat_src.shape[0],1]).to('cuda:0')),1)
             # mult W first to reduce the feature size for aggregation.
             if weight is not None:
                 feat_prod_src = th.matmul(feat_prod_src, weight)
