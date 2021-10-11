@@ -432,9 +432,11 @@ if __name__ == '__main__':
 
     # Run 10 times
     test_accs = []
-    for i in range(3):
+    dropout = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6,0.7,0.8,0.9]
+    for args.dropout in dropout:
         test_accs.append(run(args, device, data, evaluator))
         print('Average test accuracy:', np.mean(test_accs), '±', np.std(test_accs))
+        print('Max test acc/acc:', np.max(test_accs), ',',test_accs[-1])
         print('hidden/dropout/wd/rank:', args.num_hidden, ',', args.dropout,',',args.wd,',',args.rank)
 
 
