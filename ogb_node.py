@@ -432,7 +432,7 @@ if __name__ == '__main__':
 
     # Run 10 times
     test_accs = []
-    dropout = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6,0.7,0.8,0.9]
+    dropout = [0.2, 0.3, 0.4, 0.5, 0.6,0.7,0.8,0.9]
     for args.dropout in dropout:
         test_accs.append(run(args, device, data, evaluator))
         print('Average test accuracy:', np.mean(test_accs), '±', np.std(test_accs))
