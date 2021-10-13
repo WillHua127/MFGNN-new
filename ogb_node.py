@@ -118,7 +118,7 @@ class DGLGraphConv(nn.Module):
             graph.srcdata['h_sum'] = feat_sum_src
             graph.update_all(fn.copy_src('h_prod', 'm_prod'), self._elementwise_product)
             graph.update_all(fn.copy_src('h_sum', 'm_sum'), self._elementwise_sum)
-            rst = self.bn(graph.dstdata['h_prod'])
+            rst = (graph.dstdata['h_prod'])
                     
             #rst = self.bn(rst)
 
