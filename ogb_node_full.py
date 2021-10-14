@@ -118,8 +118,9 @@ class DGLGraphConv(nn.Module):
 
 
             feat_sumsrc = th.matmul(feat_src, self.w1)
-            feat_prodsrc = th.matmul(feat_src, self.w2)
+            feat_prodsrc = torch.tanh(th.matmul(feat_src, self.w2))
             graph.srcdata['h_sum'] = feat_sumsrc
+            graph.srcdata['h_prod'] = feat_sumsrc
             graph.update_all(fn.copy_src('h_sum', 'm_sum'), self._elementwise_sum)
             graph.update_all(fn.copy_src('h_prod', 'm_prod'), self._elementwise_product)
             
