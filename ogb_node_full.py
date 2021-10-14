@@ -71,6 +71,7 @@ class DGLGraphConv(nn.Module):
     def reset_parameters(self):
         nn.init.xavier_uniform_(self.w1)
         nn.init.xavier_uniform_(self.w2)
+        nn.init.xavier_uniform_(self.v)
             #nn.init.kaiming_uniform(self.weight, mode='fan_in')
             #nn.init.normal(self.weight, mean=0, std=1)
             #nn.init.constant(tensor, val)
