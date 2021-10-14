@@ -54,6 +54,8 @@ class DGLGraphConv(nn.Module):
 
         if weight:
             self.w1 = nn.Parameter(th.Tensor(in_feats, out_feats))
+            self.w2 = nn.Parameter(th.Tensor(in_feats, rank_dim))
+            self.v = nn.Parameter(th.Tensor(rank_dim, out_feats))
             #self.weight_sum = nn.Parameter(th.Tensor(in_feats, out_feats))
             #self.weight2 = nn.Parameter(th.Tensor(rank_dim, out_feats))
             #self.bias = nn.Parameter(th.Tensor(rank_dim))
@@ -68,6 +70,7 @@ class DGLGraphConv(nn.Module):
 
     def reset_parameters(self):
         nn.init.xavier_uniform_(self.w1)
+        nn.init.xavier_uniform_(self.w2)
             #nn.init.kaiming_uniform(self.weight, mode='fan_in')
             #nn.init.normal(self.weight, mean=0, std=1)
             #nn.init.constant(tensor, val)
@@ -78,7 +81,7 @@ class DGLGraphConv(nn.Module):
         return {'h_prod':th.prod(nodes.mailbox['m_prod'],dim=1)}
     
     def _elementwise_sum(self, nodes):
-        return {'h':th.sum(nodes.mailbox['m'],dim=1)}
+        return {'h_sum':th.sum(nodes.mailbox['m_sum'],dim=1)}
 
 
     def set_allow_zero_in_degree(self, set_value):
@@ -97,7 +100,7 @@ class DGLGraphConv(nn.Module):
                                    'the issue. Setting ``allow_zero_in_degree`` '
                                    'to be `True` when constructing this module will '
                                    'suppress the check and let the code run.')
-            aggregate_fn = fn.copy_src('h', 'm')
+            #aggregate_fn = fn.copy_src('h', 'm')
             if edge_weight is not None:
                 assert edge_weight.shape[0] == graph.number_of_edges()
                 graph.edata['_edge_weight'] = edge_weight
@@ -113,10 +116,13 @@ class DGLGraphConv(nn.Module):
                 feat_src = feat_src * norm
 
 
-            feat_src = th.matmul(feat_src, self.w1)
-            graph.srcdata['h'] = feat_src
-            graph.update_all(aggregate_fn, self._elementwise_sum)
-            rst = graph.dstdata['h']
+            feat_sumsrc = th.matmul(feat_src, self.w1)
+            feat_prodsrc = th.matmul(feat_src, self.w2)
+            graph.srcdata['h_sum'] = feat_sumsrc
+            graph.update_all(fn.copy_src('h_sum', 'm_sum'), self._elementwise_sum)
+            graph.update_all(fn.copy_src('h_prod', 'm_prod'), self._elementwise_product)
+            
+            rst = graph.dstdata['h_sum']
 
             if self._norm != 'none':
                 degs = graph.in_degrees().float().clamp(min=1)
