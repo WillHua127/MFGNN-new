@@ -463,6 +463,6 @@ if __name__ == '__main__':
     for i in range(5):
         test_accs.append(run(args, device, data, evaluator, args.dataset))
         print('Average test accuracy:', np.mean(test_accs), '±', np.std(test_accs))
-        print('hidden/dropout/wd/rank/acc:', args.num_hidden, ',', args.dropout,',',args.wd,',',args.rank, ',',test_accs[-1])
+        print('lr/hidden/dropout/wd/rank/acc:', args.lr, ',', args.num_hidden, ',', args.dropout,',',args.wd,',',args.rank, ',',test_accs[-1])
 
 
