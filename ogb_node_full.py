@@ -78,7 +78,7 @@ class DGLGraphConv(nn.Module):
         return {'h_prod':th.prod(nodes.mailbox['m_prod'],dim=1)}
     
     def _elementwise_sum(self, nodes):
-        return {'h_sum':th.sum(nodes.mailbox['m_sum'],dim=1)}
+        return {'h':th.sum(nodes.mailbox['m'],dim=1)}
 
 
     def set_allow_zero_in_degree(self, set_value):
@@ -115,7 +115,7 @@ class DGLGraphConv(nn.Module):
 
             feat_src = th.matmul(feat_src, self.w1)
             graph.srcdata['h'] = feat_src
-            graph.update_all(aggregate_fn, fn.sum(msg='m', out='h'))
+            graph.update_all(aggregate_fn, self._elementwise_sum)
             rst = graph.dstdata['h']
 
             if self._norm != 'none':
