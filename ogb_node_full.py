@@ -120,7 +120,7 @@ class DGLGraphConv(nn.Module):
             feat_sumsrc = th.matmul(feat_src, self.w1)
             feat_prodsrc = torch.tanh(th.matmul(feat_src, self.w2))
             graph.srcdata['h_sum'] = feat_sumsrc
-            graph.srcdata['h_prod'] = feat_sumsrc
+            graph.srcdata['h_prod'] = feat_prodsrc
             graph.update_all(fn.copy_src('h_sum', 'm_sum'), self._elementwise_sum)
             graph.update_all(fn.copy_src('h_prod', 'm_prod'), self._elementwise_product)
             
@@ -389,7 +389,7 @@ if __name__ == '__main__':
                     help='Disables CUDA training.')
     argparser.add_argument('--gpu', type=int, default=0,
         help="GPU device ID. Use -1 for CPU training")
-    argparser.add_argument('--num-epochs', type=int, default=600)
+    argparser.add_argument('--num-epochs', type=int, default=2000)
     argparser.add_argument('--num-hidden', type=int, default=128)
     argparser.add_argument('--num-layers', type=int, default=3)
     argparser.add_argument('--fan-out', type=str, default='5,10,15')
@@ -404,7 +404,7 @@ if __name__ == '__main__':
     argparser.add_argument('--num-workers', type=int, default=0,
         help="Number of sampling processes. Use 0 for no extra process.")
     argparser.add_argument('--save-pred', type=str, default='')
-    argparser.add_argument('--rank', type=int, default=128)
+    argparser.add_argument('--rank', type=int, default=256)
     argparser.add_argument('--wd', type=float, default=5e-5,
                     help='Weight decay (L2 loss on parameters).')
     args = argparser.parse_args()
