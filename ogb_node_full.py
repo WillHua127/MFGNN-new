@@ -54,7 +54,7 @@ class DGLGraphConv(nn.Module):
 
         if weight:
             self.w1 = nn.Parameter(th.Tensor(in_feats, out_feats))
-            self.w2 = nn.Parameter(th.Tensor(in_feats, rank_dim))
+            self.w2 = nn.Parameter(th.Tensor(in_feats+1, rank_dim))
             self.v = nn.Parameter(th.Tensor(rank_dim, out_feats))
             #self.weight_sum = nn.Parameter(th.Tensor(in_feats, out_feats))
             #self.weight2 = nn.Parameter(th.Tensor(rank_dim, out_feats))
@@ -118,7 +118,7 @@ class DGLGraphConv(nn.Module):
 
 
             feat_sumsrc = th.matmul(feat_src, self.w1)
-            feat_prodsrc = torch.tanh(th.matmul(feat_src, self.w2))
+            feat_prodsrc = torch.tanh(th.matmul(th.cat((feat_src, th.ones([feat_src.shape[0],1]).to('cuda:0')),1), self.w2))
             graph.srcdata['h_sum'] = feat_sumsrc
             graph.srcdata['h_prod'] = feat_prodsrc
             graph.update_all(fn.copy_src('h_sum', 'm_sum'), self._elementwise_sum)
