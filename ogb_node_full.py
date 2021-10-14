@@ -123,7 +123,7 @@ class DGLGraphConv(nn.Module):
             graph.update_all(fn.copy_src('h_sum', 'm_sum'), self._elementwise_sum)
             graph.update_all(fn.copy_src('h_prod', 'm_prod'), self._elementwise_product)
             
-            rst = graph.dstdata['h_sum']
+            rst = graph.dstdata['h_sum'] + th.matmul(graph.dstdata['h_prod'], self.v)
 
             if self._norm != 'none':
                 degs = graph.in_degrees().float().clamp(min=1)
