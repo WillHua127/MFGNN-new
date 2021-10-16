@@ -1,5 +1,4 @@
 import torch
-from torch_geometric.data import DataLoader
 import torch.optim as optim
 import torch.nn.functional as F
 import dgl.function as fn
@@ -8,12 +7,7 @@ from tqdm import tqdm
 import argparse
 import time
 import numpy as np
-from torch_geometric.nn import MessagePassing
-from torch_geometric.nn import global_add_pool
-from torch_geometric.nn.inits import uniform
 from ogb.graphproppred.mol_encoder import AtomEncoder,BondEncoder
-from torch_geometric.utils import degree
-from torch_scatter import scatter_mean
 from ogb.graphproppred import DglGraphPropPredDataset, collate_dgl, Evaluator
 from torch.utils.data import DataLoader
 import dgl.nn.pytorch as dglnn
@@ -121,8 +115,8 @@ class DGLGraphConv(torch.nn.Module):
             graph.srcdata['h_prod'] = feat_prodsrc
             #graph.update_all(fn.copy_src('h_prod', 'm_prod'), self._elementwise_product)
             #graph.update_all(fn.copy_src('h_sum', 'm_sum'), self._elementwise_sum)
-            graph.update_all(fn.u_mul_e('h_prod', '_edge_weight', 'm_prod'), fn.sum(msg='m_prod', out='h_prod'))
-            graph.update_all(fn.u_mul_e('h_sum', '_edge_weight', 'm_sum'), fn.sum(msg='m_sum', out='h_sum'))
+            graph.update_all(fn.u_mul_e('h_prod', '_edge_weight', 'm_prod'), self._elementwise_product)
+            graph.update_all(fn.u_mul_e('h_sum', '_edge_weight', 'm_sum'), self._elementwise_sum)
             rst = graph.dstdata['h_sum'] + torch.matmul(graph.dstdata['h_prod'], self.v)
 
 
