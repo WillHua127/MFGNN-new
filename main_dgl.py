@@ -290,6 +290,9 @@ def main():
                         help='dimensionality of rank units in GNNs (default: 300)')
     parser.add_argument('--filename', type=str, default="",
                         help='filename to output result (default: )')
+    parser.add_argument('--lr', type=float, default=0.003)
+    parser.add_argument('--wd', type=float, default=5e-5,
+                    help='Weight decay (L2 loss on parameters).')
     args = parser.parse_args()
 
     device = torch.device("cuda:" + str(args.device)) if torch.cuda.is_available() else torch.device("cpu")
@@ -308,7 +311,7 @@ def main():
     test_loader = DataLoader(dataset[split_idx["test"]], batch_size=args.batch_size, shuffle=False, num_workers = args.num_workers, collate_fn=collate_dgl)
 
     model = GNN(num_tasks = dataset.num_tasks, num_layer = args.num_layer, emb_dim = args.emb_dim, rank=args.rank, drop_ratio = args.drop_ratio).to(device)
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
 
     valid_curve = []
     test_curve = []
