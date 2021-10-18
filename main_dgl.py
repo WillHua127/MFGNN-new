@@ -177,7 +177,7 @@ class GNN_node(torch.nn.Module):
                 h = self.convs[layer](graph, h, edge_weight = e)
             else:
                 h = self.convs[layer](graph, h)
-            #h = self.batch_norms[layer](h)
+            h = self.batch_norms[layer](h)
 
             if layer == self.num_layer - 1:
                 #remove relu for the last layer
