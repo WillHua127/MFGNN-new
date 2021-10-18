@@ -168,7 +168,7 @@ class GNN_node(torch.nn.Module):
 
         for layer in range(num_layer):
             self.convs.append(DGLGraphConv(emb_dim, emb_dim, rank, allow_zero_in_degree=True))
-            self.batch_norms.append(torch.nn.BatchNorm1d(emb_dim))
+            #self.batch_norms.append(torch.nn.BatchNorm1d(emb_dim))
 
     def forward(self, graph, x, e=None):
         h = self.atom_encoder(x)
@@ -177,7 +177,7 @@ class GNN_node(torch.nn.Module):
                 h = self.convs[layer](graph, h, edge_weight = e)
             else:
                 h = self.convs[layer](graph, h)
-            h = self.batch_norms[layer](h)
+            #h = self.batch_norms[layer](h)
 
             if layer == self.num_layer - 1:
                 #remove relu for the last layer
