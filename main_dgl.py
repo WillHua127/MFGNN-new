@@ -168,7 +168,7 @@ class GNN_node(torch.nn.Module):
 
         for layer in range(num_layer):
             self.convs.append(DGLGraphConv(emb_dim, emb_dim, rank, allow_zero_in_degree=True))
-            #self.batch_norms.append(torch.nn.BatchNorm1d(emb_dim))
+            self.batch_norms.append(torch.nn.BatchNorm1d(emb_dim))
 
     def forward(self, graph, x, e=None):
         h = self.atom_encoder(x)
