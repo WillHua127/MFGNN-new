@@ -56,7 +56,7 @@ class DGLGraphConv(torch.nn.Module):
         else:
             self.register_parameter('weight', None)
             
-        #self.bond_encoder = BondEncoder(out_feats)
+        self.bond_encoder = BondEncoder(out_feats)
 
 
 
@@ -113,10 +113,10 @@ class DGLGraphConv(torch.nn.Module):
             feat_prodsrc = torch.tanh(torch.matmul(torch.cat((feat_src, torch.ones([feat_src.shape[0],1]).to('cuda:0')),1), self.w2))
             graph.srcdata['h_sum'] = feat_sumsrc
             graph.srcdata['h_prod'] = feat_prodsrc
-            graph.update_all(fn.copy_src('h_prod', 'm_prod'), self._elementwise_product)
-            graph.update_all(fn.copy_src('h_sum', 'm_sum'), self._elementwise_sum)
-            #graph.update_all(fn.u_mul_e('h_prod', '_edge_weight', 'm_prod'), self._elementwise_product)
-            #graph.update_all(fn.u_mul_e('h_sum', '_edge_weight', 'm_sum'), self._elementwise_sum)
+            #graph.update_all(fn.copy_src('h_prod', 'm_prod'), self._elementwise_product)
+            #graph.update_all(fn.copy_src('h_sum', 'm_sum'), self._elementwise_sum)
+            graph.update_all(fn.u_mul_e('h_prod', '_edge_weight', 'm_prod'), self._elementwise_product)
+            graph.update_all(fn.u_mul_e('h_sum', '_edge_weight', 'm_sum'), self._elementwise_sum)
             rst = graph.dstdata['h_sum'] + torch.matmul(graph.dstdata['h_prod'], self.v)
 
 
@@ -226,7 +226,7 @@ def train(model, device, loader, optimizer, task_type):
         graph = batch[0].to(device)
         labels = batch[1].to(device)
         nfeat = graph.ndata['feat'].to(device)
-        efeat = None#graph.edata['feat'].to(device)
+        efeat = graph.edata['feat'].to(device)
 
         pred = model(graph, nfeat, efeat)
         optimizer.zero_grad()
@@ -248,7 +248,7 @@ def eval(model, device, loader, evaluator):
         graph = batch[0].to(device)
         labels = batch[1].to(device)
         nfeat = graph.ndata['feat'].to(device)
-        efeat = None#graph.edata['feat'].to(device)
+        efeat = graph.edata['feat'].to(device)
 
         with torch.no_grad():
             pred = model(graph, nfeat, efeat)
