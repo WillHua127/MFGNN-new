@@ -18,6 +18,19 @@ cls_criterion = torch.nn.BCEWithLogitsLoss()
 reg_criterion = torch.nn.MSELoss()
 
 
+class graph_cp_pooling(torch.nn.Module):
+    def __init__(self, in_feats, out_feats):
+        super(graph_cp_pooling, self).__init__()
+        self.w = torch.nn.Parameter(torch.Tensor(in_feats+1, out_feats))
+
+    def reset_parameters(self):
+        torch.nn.init.xavier_uniform_(self.w)
+        
+    def forward(self, graphs):
+        #fea = torch.tanh(self.W(x)
+        #fea = torch.prod(fea,0).unsqueeze(0)
+        return torch.cat([torch.prod(torch.tanh(torch.matmul(torch.cat((g.srcdata['h'], torch.ones([g.srcdata['h'].shape[0],1]).to('cuda:0')),1), self.w)), 0).unsqueeze(0)+torch.sum(g.srcdata['h'], 0).unsqueeze(0) for g in graphs])
+    
 def readout_nodes(graph, feat, weight=None, op='sum', ntype=None):
     x = feat
     if weight is not None:
@@ -181,7 +194,7 @@ class GNN_node(torch.nn.Module):
 
             if layer == self.num_layer - 1:
                 #remove relu for the last layer
-                h = F.dropout(h, self.drop_ratio, training = self.training)
+                h = h
             else:
                 h = F.dropout(F.relu(h), self.drop_ratio, training = self.training)
 
@@ -214,7 +227,11 @@ class GNN(torch.nn.Module):
             h_node = self.gnn_node(graph, nfeat, efeat)
         else:
             h_node = self.gnn_node(graph, nfeat)
-        h_graph = readout_nodes(graph, h_node)
+            
+        with graph.local_scope():
+            graph.srcdata['h'] = h_node#torch.cat((h_node, torch.ones([h_node.shape[0],1])),1)
+            h_graph = self.graph_cp(dgl.unbatch(graph))
+        #h_graph = readout_nodes(graph, h_node)
 
         return self.graph_pred_linear(h_graph)
     
