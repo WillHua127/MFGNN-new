@@ -219,6 +219,7 @@ class GNN(torch.nn.Module):
 
         self.gnn_node = GNN_node(num_layer, emb_dim, rank, drop_ratio = drop_ratio)
 
+        self.graph_cp = graph_cp_pooling(self.emb_dim, self.emb_dim)
 
         self.graph_pred_linear = torch.nn.Linear(self.emb_dim, self.num_tasks)
 
