@@ -206,18 +206,25 @@ class SampleCPPooling(nn.Module):
             x = y
         return y
 
-def compute_acc(pred, labels, evaluator):
+def compute_acc(pred, labels, evaluator, dataset):
     """
     Compute the accuracy of prediction given the labels.
     """
-    acc = evaluator.eval({
-        'y_true': labels.unsqueeze(1),
-        'y_pred': th.argmax(pred, dim=1).unsqueeze(1),
-    })['acc']
+    if dataset in {"proteins"}:
+        acc = evaluator.eval({
+            'y_true': labels,
+            'y_pred': pred,
+        })['rocauc']
+    else:
+        acc = evaluator.eval({
+            'y_true': labels.unsqueeze(1),
+            'y_pred': th.argmax(pred, dim=1).unsqueeze(1),
+        })['acc']
     #return (th.argmax(pred, dim=1) == labels).float().sum() / len(pred)
     return acc
 
-def evaluate(model, g, nfeat, labels, val_nid, test_nid, device, evaluator):
+
+def evaluate(model, g, nfeat, labels, val_nid, test_nid, device, evaluator, dataset):
     """
     Evaluate the model on the validation set specified by ``val_mask``.
     g : The entire graph.
@@ -230,7 +237,7 @@ def evaluate(model, g, nfeat, labels, val_nid, test_nid, device, evaluator):
     with th.no_grad():
         pred = model.inference(g, nfeat, device)
     model.train()
-    return compute_acc(pred[val_nid], labels[val_nid], evaluator), compute_acc(pred[test_nid], labels[test_nid], evaluator), pred
+    return compute_acc(pred[val_nid], labels[val_nid], evaluator, dataset), compute_acc(pred[test_nid], labels[test_nid], evaluator, dataset), pred
 
 def load_subtensor(nfeat, labels, seeds, input_nodes):
     """
@@ -274,7 +281,7 @@ def convert_mag_to_homograph(g, device):
 
 
 #### Entry point
-def run(args, device, data, evaluator):
+def run(args, device, data, evaluator, dataset):
     # Unpack data
     train_nid, val_nid, test_nid, in_feats, labels, n_classes, nfeat, g = data
 
@@ -293,7 +300,10 @@ def run(args, device, data, evaluator):
     # Define model and optimizer
     model = SampleCPPooling(in_feats, args.num_hidden, args.rank, n_classes, args.num_layers, F.relu, args.dropout)
     model = model.to(device)
-    loss_fcn = nn.CrossEntropyLoss()
+    if dataset in {'proteins'}:
+        loss_fcn = nn.BCEWithLogitsLoss()
+    else:
+        loss_fcn = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
 
     # Training loop
@@ -324,7 +334,7 @@ def run(args, device, data, evaluator):
 
             iter_tput.append(len(seeds) / (time.time() - tic_step))
             if step % args.log_every == 0:
-                acc = compute_acc(batch_pred, batch_labels, evaluator)
+                acc = compute_acc(batch_pred, labels, evaluator, dataset)
                 gpu_mem_alloc = th.cuda.max_memory_allocated() / 1000000 if th.cuda.is_available() else 0
                 print('Epoch {:05d} | Step {:05d} | Loss {:.4f} | Train Acc {:.4f} | Speed (samples/sec) {:.4f} | GPU {:.1f} MB'.format(
                     epoch, step, loss.item(), acc, np.mean(iter_tput[3:]), gpu_mem_alloc))
@@ -334,7 +344,7 @@ def run(args, device, data, evaluator):
         if epoch >= 5:
             avg += toc - tic
         if epoch % args.eval_every == 0 and epoch != 0:
-            eval_acc, test_acc, pred = evaluate(model, g, nfeat, labels, val_nid, test_nid, device, evaluator)
+            eval_acc, test_acc, pred = evaluate(model, g, nfeat, labels, val_nid, test_nid, device, evaluator, dataset)
             if args.save_pred:
                 np.savetxt(args.save_pred + '%02d' % epoch, pred.argmax(1).cpu().numpy(), '%d')
             print('Eval Acc {:.4f}'.format(eval_acc))
@@ -424,7 +434,7 @@ if __name__ == '__main__':
     test_accs = []
     #dropout = [0.2, 0.3, 0.4, 0.5, 0.6,0.7,0.8,0.9]
     for i in range(1):
-        test_accs.append(run(args, device, data, evaluator))
+        test_accs.append(run(args, device, data, evaluator, args.dataset))
         print('Average test accuracy:', np.mean(test_accs), '±', np.std(test_accs))
         print('Max test acc/acc:', np.max(test_accs), ',',test_accs[-1])
         print('hidden/dropout/wd/rank:', args.num_hidden, ',', args.dropout,',',args.wd,',',args.rank)
