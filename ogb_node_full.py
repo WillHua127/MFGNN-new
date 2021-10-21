@@ -40,7 +40,7 @@ class DGLGraphConv(nn.Module):
                  weight=True,
                  bias=True,
                  activation=None,
-                 allow_zero_in_degree=False):
+                 allow_zero_in_degree=True):
         super(DGLGraphConv, self).__init__()
         if norm not in ('none', 'both', 'right'):
             raise DGLError('Invalid norm value. Must be either "none", "both" or "right".'
