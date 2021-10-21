@@ -39,12 +39,15 @@ class DGLGraphConv(nn.Module):
         self.bn = nn.BatchNorm1d(rank_dim)
 
         if weight:
-            self.weight = nn.Parameter(th.Tensor(in_feats+1, rank_dim))
-            self.weight2 = nn.Parameter(th.Tensor(rank_dim, out_feats))
-            self.weight_sum = nn.Parameter(th.Tensor(in_feats, out_feats))
+            self.w1 = nn.Parameter(th.Tensor(in_feats, out_feats))
+            self.w2 = nn.Parameter(th.Tensor(in_feats+1, rank_dim))
+            self.v = nn.Parameter(th.Tensor(rank_dim, out_feats))
+            #self.weight_sum = nn.Parameter(th.Tensor(in_feats, out_feats))
+            #self.weight2 = nn.Parameter(th.Tensor(rank_dim, out_feats))
             #self.bias = nn.Parameter(th.Tensor(rank_dim))
         else:
             self.register_parameter('weight', None)
+            
 
 
         self.reset_parameters()
@@ -52,15 +55,9 @@ class DGLGraphConv(nn.Module):
         self._activation = activation
 
     def reset_parameters(self):
-        if self.weight is not None:
-            nn.init.xavier_uniform_(self.weight)
-            nn.init.xavier_uniform_(self.weight2)
-            nn.init.xavier_uniform_(self.weight_sum)
-            #nn.init.kaiming_uniform(self.weight, mode='fan_in')
-            #nn.init.normal(self.weight, mean=0, std=1)
-            #nn.init.constant(tensor, val)
-        #if self.bias is not None:
-            #nn.init.zeros_(self.bias)
+        nn.init.xavier_uniform_(self.w1)
+        nn.init.xavier_uniform_(self.w2)
+        nn.init.xavier_uniform_(self.v)
     
     def _elementwise_product(self, nodes):
         return {'h_prod':th.prod(nodes.mailbox['m_prod'],dim=1)}
@@ -109,20 +106,16 @@ class DGLGraphConv(nn.Module):
             else:
                 weight = self.weight
 
-            feat_prod_src = th.cat((feat_src, th.ones([feat_src.shape[0],1]).to('cuda:0')),1)
-            # mult W first to reduce the feature size for aggregation.
-            if weight is not None:
-                feat_prod_src = th.matmul(feat_prod_src, weight)
-                feat_sum_src = th.matmul(feat_src, self.weight_sum)
-            graph.srcdata['h_prod'] = th.tanh(feat_prod_src)#+self.bias#torch.tanh(feat_src)
-            graph.srcdata['h_sum'] = feat_sum_src
-            graph.update_all(fn.copy_src('h_prod', 'm_prod'), self._elementwise_product)
+            feat_sumsrc = th.matmul(feat_src, self.w1)
+            feat_prodsrc = th.tanh(th.matmul(th.cat((feat_src, th.ones([feat_src.shape[0],1]).to('cuda:0')),1), self.w2))
+            graph.srcdata['h_sum'] = feat_sumsrc
+            graph.srcdata['h_prod'] = feat_prodsrc
             graph.update_all(fn.copy_src('h_sum', 'm_sum'), self._elementwise_sum)
-            rst = (graph.dstdata['h_prod'])
-                    
-            #rst = self.bn(rst)
+            graph.update_all(fn.copy_src('h_prod', 'm_prod'), self._elementwise_product)
+            
+            rst = graph.dstdata['h_sum'] + th.matmul(graph.dstdata['h_prod'], self.v)
 
-            rst = th.matmul(rst, self.weight2)+graph.dstdata['h_sum']
+
             if self._norm != 'none':
                 degs = graph.in_degrees().float().clamp(min=1)
                 if self._norm == 'both':
@@ -294,9 +287,9 @@ def run(args, device, data, evaluator):
     train_nid, val_nid, test_nid, in_feats, labels, n_classes, nfeat, g = data
 
     # Create PyTorch DataLoader for constructing blocks
-    sampler = dgl.dataloading.MultiLayerNeighborSampler(
-        [int(fanout) for fanout in args.fan_out.split(',')])
-    #ful_sampler = dgl.dataloading.MultiLayerFullNeighborSampler(2)
+    #sampler = dgl.dataloading.MultiLayerNeighborSampler(
+        #[int(fanout) for fanout in args.fan_out.split(',')])
+    sampler = dgl.dataloading.MultiLayerFullNeighborSampler(args.num_layers)
     dataloader = dgl.dataloading.NodeDataLoader(
         g,
         train_nid,
