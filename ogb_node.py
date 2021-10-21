@@ -98,14 +98,6 @@ class DGLGraphConv(nn.Module):
                 norm = th.reshape(norm, shp)
                 feat_src = feat_src * norm
 
-            if weight is not None:
-                if self.weight is not None:
-                    raise DGLError('External weight is provided while at the same time the'
-                                   ' module has defined its own weight parameter. Please'
-                                   ' create the module with flag weight=False.')
-            else:
-                weight = self.weight
-
             feat_sumsrc = th.matmul(feat_src, self.w1)
             feat_prodsrc = th.tanh(th.matmul(th.cat((feat_src, th.ones([feat_src.shape[0],1]).to('cuda:0')),1), self.w2))
             graph.srcdata['h_sum'] = feat_sumsrc
