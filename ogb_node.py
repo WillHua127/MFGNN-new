@@ -397,6 +397,7 @@ if __name__ == '__main__':
 #         val_idx = val_idx.cuda()
 #         test_idx = test_idx.cuda()
     graph, labels = data[0]
+    n_classes = (labels.max() + 1).item()
     #graph = graph.to(device)
     if args.dataset == "arxiv":
         graph = dgl.add_reverse_edges(graph, copy_ndata=True)
@@ -411,6 +412,7 @@ if __name__ == '__main__':
         g = convert_mag_to_homograph(g, device)
         labels = labels[:, 0].to(device)
     elif args.dataset == "proteins":
+        n_classes = labels.shape[1]
         graph.update_all(fn.copy_e("feat","feat_copy"),fn.sum("feat_copy","feat"))
         #one_hot = th.zeros(graph.number_of_nodes(), n_classes)
         #one_hot[train_idx, labels[train_idx,0]]=1
@@ -426,7 +428,6 @@ if __name__ == '__main__':
     
 
     in_feats = nfeat.shape[1]
-    n_classes = (labels.max() + 1).item()
     # Create csr/coo/csc formats before launching sampling processes
     # This avoids creating certain formats in each data loader process, which saves momory and CPU.
     graph.create_formats_()
