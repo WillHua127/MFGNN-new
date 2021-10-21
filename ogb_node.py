@@ -334,7 +334,7 @@ def run(args, device, data, evaluator, dataset):
 
             iter_tput.append(len(seeds) / (time.time() - tic_step))
             if step % args.log_every == 0:
-                acc = compute_acc(batch_pred, labels, evaluator, dataset)
+                acc = compute_acc(batch_pred, batch_labels, evaluator, dataset)
                 gpu_mem_alloc = th.cuda.max_memory_allocated() / 1000000 if th.cuda.is_available() else 0
                 print('Epoch {:05d} | Step {:05d} | Loss {:.4f} | Train Acc {:.4f} | Speed (samples/sec) {:.4f} | GPU {:.1f} MB'.format(
                     epoch, step, loss.item(), acc, np.mean(iter_tput[3:]), gpu_mem_alloc))
