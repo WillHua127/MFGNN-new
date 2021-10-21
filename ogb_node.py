@@ -279,9 +279,8 @@ def run(args, device, data, evaluator):
     train_nid, val_nid, test_nid, in_feats, labels, n_classes, nfeat, g = data
 
     # Create PyTorch DataLoader for constructing blocks
-    #sampler = dgl.dataloading.MultiLayerNeighborSampler(
-        #[int(fanout) for fanout in args.fan_out.split(',')])
-    sampler = dgl.dataloading.MultiLayerFullNeighborSampler(args.num_layers)
+    sampler = dgl.dataloading.MultiLayerNeighborSampler([int(fanout) for fanout in args.fan_out.split(',')])
+    #sampler = dgl.dataloading.MultiLayerFullNeighborSampler(args.num_layers)
     dataloader = dgl.dataloading.NodeDataLoader(
         g,
         train_nid,
