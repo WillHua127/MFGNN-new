@@ -399,6 +399,12 @@ if __name__ == '__main__':
         val_idx = val_idx["paper"]
         test_idx = test_idx["paper"]
         g = convert_mag_to_homograph(g, device)
+    elif args.dataset == "proteins":
+        graph.update_all(fn.copy_e("feat","feat_copy"),fn.sum("feat_copy","feat"))
+        #one_hot = th.zeros(graph.number_of_nodes(), n_classes)
+        #one_hot[train_idx, labels[train_idx,0]]=1
+        #graph.ndata['feat'] = th.cat([graph.ndata['feat'], one_hot],dim=1)
+        graph.ndata['feat'] = graph.ndata['feat'].float()
     else:
         graph = dgl.add_self_loop(graph)
         graph.ndata['feat'] = graph.ndata['feat'].float()
