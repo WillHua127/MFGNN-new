@@ -90,17 +90,17 @@ class DGLGraphConv(nn.Module):
 
     def forward(self, graph, feat, weight=None, edge_weight=None):
         with graph.local_scope():
-            if not self._allow_zero_in_degree:
-                if (graph.in_degrees() == 0).any():
-                    raise DGLError('There are 0-in-degree nodes in the graph, '
-                                   'output for those nodes will be invalid. '
-                                   'This is harmful for some applications, '
-                                   'causing silent performance regression. '
-                                   'Adding self-loop on the input graph by '
-                                   'calling `g = dgl.add_self_loop(g)` will resolve '
-                                   'the issue. Setting ``allow_zero_in_degree`` '
-                                   'to be `True` when constructing this module will '
-                                   'suppress the check and let the code run.')
+#             if not self._allow_zero_in_degree:
+#                 if (graph.in_degrees() == 0).any():
+#                     raise DGLError('There are 0-in-degree nodes in the graph, '
+#                                    'output for those nodes will be invalid. '
+#                                    'This is harmful for some applications, '
+#                                    'causing silent performance regression. '
+#                                    'Adding self-loop on the input graph by '
+#                                    'calling `g = dgl.add_self_loop(g)` will resolve '
+#                                    'the issue. Setting ``allow_zero_in_degree`` '
+#                                    'to be `True` when constructing this module will '
+#                                    'suppress the check and let the code run.')
             #aggregate_fn = fn.copy_src('h', 'm')
             if edge_weight is not None:
                 assert edge_weight.shape[0] == graph.number_of_edges()
