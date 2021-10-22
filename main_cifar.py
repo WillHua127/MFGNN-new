@@ -15,8 +15,7 @@ import dgl
 import os
 
 
-cls_criterion = torch.nn.BCEWithLogitsLoss()
-reg_criterion = torch.nn.MSELoss()
+criterion = torch.nn.CrossEntropyLoss()
 
 
 def to_dgl(pyg_graph):
@@ -259,8 +258,7 @@ def train(model, device, loader, optimizer):
         pred = model(graph, nfeat)
         optimizer.zero_grad()
         is_labeled = labels == labels
-        print(pred,labels)
-        loss = cls_criterion(pred.to(torch.float32)[is_labeled], labels.to(torch.float32)[is_labeled])
+        loss = criterion(pred.to(torch.float32)[is_labeled], labels.to(torch.float32)[is_labeled])
         loss.backward()
         optimizer.step()
 
