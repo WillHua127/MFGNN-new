@@ -263,7 +263,7 @@ def train(model, device, loader, optimizer):
         loss.backward()
         optimizer.step()
 
-def eval(model, device, loader):
+def eval(model, device, loader, size):
     model.eval()
     y_true = []
     y_pred = []
@@ -277,8 +277,7 @@ def eval(model, device, loader):
         with torch.no_grad():
             pred = model(graph, nfeat)
             epoch_test_mae += (pred.squeeze() - labels).abs().sum().item()
-            epoch_test_mae /= (step + 1)
-    return epoch_test_mae
+    return epoch_test_mae/size
 
 
 def main():
@@ -341,9 +340,9 @@ def main():
         train(model, device, train_loader, optimizer)
 
         print('Evaluating...')
-        train_perf = eval(model, device, train_loader)
-        valid_perf = eval(model, device, valid_loader)
-        test_perf = eval(model, device, test_loader)
+        train_perf = eval(model, device, train_loader, len(train_graphs))
+        valid_perf = eval(model, device, valid_loader, len(val_graphs))
+        test_perf = eval(model, device, test_loader, len(test_graphs))
 
         print({'Train': train_perf, 'Validation': valid_perf, 'Test': test_perf})
 
