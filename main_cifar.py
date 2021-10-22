@@ -290,9 +290,10 @@ def eval(model, device, loader, evaluator):
     y_true = torch.cat(y_true, dim = 0).numpy()
     y_pred = torch.cat(y_pred, dim = 0).numpy()
 
-    input_dict = {"y_true": y_true, "y_pred": y_pred}
+    #input_dict = {"y_true": y_true, "y_pred": y_pred}
+    acc = (y_true==y_pred).float().sum().item()
 
-    return evaluator.eval(input_dict)
+    return acc/len(y_true)
 
 
 def main():
