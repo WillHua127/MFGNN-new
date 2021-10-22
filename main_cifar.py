@@ -287,9 +287,8 @@ def eval(model, device, loader, evaluator):
             y_true.append(labels.detach().cpu())
             y_pred.append(pred.detach().cpu())
 
-    y_true = torch.cat(y_true, dim = 0).numpy()
-    y_pred = torch.cat(y_pred, dim = 0).numpy()
-
+    y_true = torch.cat(y_true, dim = 0)
+    y_pred = torch.cat(y_pred, dim = 0)
     #input_dict = {"y_true": y_true, "y_pred": y_pred}
     acc = (y_true==y_pred).float().sum().item()
 
