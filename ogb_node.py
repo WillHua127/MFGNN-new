@@ -408,7 +408,7 @@ if __name__ == '__main__':
         train_idx = train_idx["paper"]
         val_idx = val_idx["paper"]
         test_idx = test_idx["paper"]
-        g = convert_mag_to_homograph(g, device)
+        graph = convert_mag_to_homograph(graph, device)
         labels = labels[:, 0].to(device)
     elif args.dataset == "proteins":
         n_classes = labels.shape[1]
