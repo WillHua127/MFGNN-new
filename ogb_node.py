@@ -261,7 +261,7 @@ def convert_mag_to_homograph(g, device):
         ("paper", "has_topic", "field"): (src_topic, dst_topic),
         ("author", "aff", "inst"): (src_aff, dst_aff)
     })
-    new_g = new_g.to(device)
+    #new_g = new_g.to(device)
     new_g.nodes["paper"].data["feat"] = g.nodes["paper"].data["feat"]
     new_g["written"].update_all(fn.copy_u("feat", "m"), fn.mean("m", "feat"))
     new_g["has_topic"].update_all(fn.copy_u("feat", "m"), fn.mean("m", "feat"))
