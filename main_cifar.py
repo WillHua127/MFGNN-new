@@ -281,7 +281,7 @@ def eval(model, device, loader, evaluator):
         with torch.no_grad():
             pred = model(graph, nfeat)
             
-            pred = scores.detach().argmax(dim=1)
+            pred = pred.detach().argmax(dim=1)
 
 
             y_true.append(labels.detach().cpu())
