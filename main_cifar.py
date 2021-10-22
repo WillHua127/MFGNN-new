@@ -258,9 +258,9 @@ def train(model, device, loader, optimizer):
         pred = model(graph, nfeat)
         optimizer.zero_grad()
         is_labeled = labels == labels
-        labels = labels.squeeze()
-        #labels = F.one_hot(labels)
-        #print(pred.shape, labels.shape)
+        labels = labels.squeeze(1)
+        labels = F.one_hot(labels)
+        print(pred.shape, labels.shape)
         #loss = criterion(pred.to(torch.float32)[is_labeled], labels.to(torch.float32)[is_labeled])
         loss = F.cross_entropy(pred.to(torch.float32)[is_labeled], labels.to(torch.float32)[is_labeled])
         loss.backward()
