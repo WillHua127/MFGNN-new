@@ -316,8 +316,7 @@ def main():
     train_dataset = ZINC(os.path.join('torch_geometric_data','zinc'), subset=True, split='train')
     val_dataset = ZINC(os.path.join('torch_geometric_data','zinc'), subset=True, split='val')
     test_dataset = ZINC(os.path.join('torch_geometric_data','zinc'), subset=True, split='test')
-    n_classes = (train_dataset[0].y.max() + 1).item()
-    print(train_dataset[0].y)
+    n_classes = 1
     in_feat = train_dataset[0].x.shape[1]
 
 
