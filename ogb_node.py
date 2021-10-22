@@ -404,7 +404,7 @@ if __name__ == '__main__':
         graph = dgl.add_self_loop(graph)
         graph.ndata['feat'] = graph.ndata['feat'].float()
         labels = labels[:, 0].to(device)
-    elif args.dataset == "ogbn-mag":
+    elif args.dataset == "mag":
         labels = labels["paper"]
         train_idx = train_idx["paper"]
         val_idx = val_idx["paper"]
