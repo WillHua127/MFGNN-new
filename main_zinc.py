@@ -21,7 +21,7 @@ reg_criterion = torch.nn.MSELoss()
 
 def to_dgl(pyg_graph):
     edge = pyg_graph.edge_index
-    graph = dgl.DGLGraph((edge[0],edge[1]))
+    graph = dgl.graph((edge[0],edge[1]))
     graph.ndata['feat'] = pyg_graph.x
     return graph, pyg_graph.y
 
@@ -276,7 +276,7 @@ def eval(model, device, loader):
 
         with torch.no_grad():
             pred = model(graph, nfeat)
-            total_error += (pred.squeeze() - labels).abs().sum().item()
+            epoch_test_mae += (pred.squeeze() - labels).abs().sum().item()
             epoch_test_mae /= (step + 1)
     return epoch_test_mae
 
