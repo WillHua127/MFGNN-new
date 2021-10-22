@@ -276,6 +276,7 @@ def eval(model, device, loader, evaluator):
         graph = batch[0].to(device)
         labels = batch[1].to(device)
         nfeat = graph.ndata['feat'].to(device)
+        labels = labels.squeeze(1)
 
         with torch.no_grad():
             pred = model(graph, nfeat)
