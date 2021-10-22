@@ -268,7 +268,7 @@ def eval(model, device, loader):
     y_true = []
     y_pred = []
 
-    total_error = 0
+    epoch_test_mae = 0
     for step, batch in enumerate(tqdm(loader, desc="Iteration")):
         graph = batch[0].to(device)
         labels = batch[1].to(device)
@@ -277,9 +277,8 @@ def eval(model, device, loader):
         with torch.no_grad():
             pred = model(graph, nfeat)
             total_error += (pred.squeeze() - labels).abs().sum().item()
-    total_error = total_error/len(loader)
-
-    return total_error
+            epoch_test_mae /= (step + 1)
+    return epoch_test_mae
 
 
 def main():
