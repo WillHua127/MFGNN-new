@@ -1,5 +1,6 @@
 import os.path as osp
 
+from torch_geometric.data import DataLoader
 import torch
 import torch.nn.functional as F
 from torch.nn import ModuleList, Embedding
@@ -16,9 +17,9 @@ train_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split
 val_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split='val')
 test_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split='test')
 
-train_loader = torch_geometric.data.DataLoader(train_dataset, batch_size=128, shuffle=True)
-val_loader = torch_geometric.data.DataLoader(val_dataset, batch_size=128)
-test_loader = torch_geometric.data.DataLoader(test_dataset, batch_size=128)
+train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=128)
+test_loader = DataLoader(test_dataset, batch_size=128)
 
 # Compute in-degree histogram over training data.
 deg = torch.zeros(5, dtype=torch.long)
