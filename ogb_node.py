@@ -397,7 +397,6 @@ if __name__ == '__main__':
 #         val_idx = val_idx.cuda()
 #         test_idx = test_idx.cuda()
     graph, labels = data[0]
-    n_classes = (labels.max() + 1).item()
     #graph = graph.to(device)
     if args.dataset == "arxiv":
         graph = dgl.add_reverse_edges(graph, copy_ndata=True)
@@ -424,6 +423,7 @@ if __name__ == '__main__':
         graph.ndata['feat'] = graph.ndata['feat'].float()
         labels = labels[:, 0].to(device)
 
+    n_classes = data.num_classes
     nfeat = graph.ndata.pop('feat').to(device)
     
 
