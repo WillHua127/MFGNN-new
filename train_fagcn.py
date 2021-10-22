@@ -7,7 +7,7 @@ from torch.nn import Sequential, ReLU, Linear
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch_geometric.utils import degree
 from torch_geometric.datasets import ZINC
-from torch.utils.data import DataLoader
+#from torch.utils.data import DataLoader
 from torch_geometric.nn import PNAConv, BatchNorm, global_add_pool
 from tqdm import tqdm
 
@@ -16,9 +16,9 @@ train_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split
 val_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split='val')
 test_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split='test')
 
-train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=128)
-test_loader = DataLoader(test_dataset, batch_size=128)
+train_loader = torch_geometric.data.DataLoader(train_dataset, batch_size=128, shuffle=True)
+val_loader = torch_geometric.data.DataLoader(val_dataset, batch_size=128)
+test_loader = torch_geometric.data.DataLoader(test_dataset, batch_size=128)
 
 # Compute in-degree histogram over training data.
 deg = torch.zeros(5, dtype=torch.long)
