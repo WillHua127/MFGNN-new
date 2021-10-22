@@ -9,6 +9,7 @@ from torch_geometric.utils import degree
 from torch_geometric.datasets import ZINC
 from torch.utils.data import DataLoader
 from torch_geometric.nn import PNAConv, BatchNorm, global_add_pool
+from tqdm import tqdm
 
 
 train_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split='train')
@@ -71,7 +72,7 @@ def train(epoch):
     model.train()
 
     total_loss = 0
-    for data in train_loader:
+    for step, data in enumerate(tqdm(train_loader, desc="Iteration")):
         data = data.to(device)
         optimizer.zero_grad()
         out = model(data.x, data.edge_index, data.edge_attr, data.batch)
@@ -87,7 +88,7 @@ def test(loader):
     model.eval()
 
     total_error = 0
-    for data in loader:
+    for step, data in enumerate(tqdm(loader, desc="Iteration")):
         data = data.to(device)
         out = model(data.x, data.edge_index, data.edge_attr, data.batch)
         total_error += (out.squeeze() - data.y).abs().sum().item()
