@@ -20,7 +20,7 @@ criterion = torch.nn.CrossEntropyLoss()
 
 def to_dgl(pyg_graph):
     edge = pyg_graph.edge_index
-    graph = dgl.DGLGraph((edge[0],edge[1]))
+    graph = dgl.graph((edge[0],edge[1]))
     graph.ndata['feat'] = pyg_graph.x
     return graph, pyg_graph.y
 
