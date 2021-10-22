@@ -276,8 +276,15 @@ def eval(model, device, loader):
 
         with torch.no_grad():
             pred = model(graph, nfeat)
-            epoch_test_mae += (pred.squeeze() - labels).abs().sum().item()
-    return epoch_test_mae/(len(loader.dataset))
+            
+            y_true.append(labels.detach().cpu())
+            y_pred.append(pred.detach().cpu())
+
+    y_true = torch.cat(y_true, dim = 0).numpy()
+    y_pred = torch.cat(y_pred, dim = 0).numpy()
+    
+    epoch_test_mae = (y_pred.squeeze() - y_true).abs().mean().item()
+    return epoch_test_mae
 
 
 def main():
