@@ -351,12 +351,9 @@ def main():
         valid_curve.append(valid_perf)
         test_curve.append(test_perf)
 
-    if 'classification' in dataset.task_type:
-        best_val_epoch = np.argmax(np.array(valid_curve))
-        best_train = max(train_curve)
-    else:
-        best_val_epoch = np.argmin(np.array(valid_curve))
-        best_train = min(train_curve)
+
+    best_val_epoch = np.argmin(np.array(valid_curve))
+    best_train = min(train_curve)
 
     print('Finished training!')
     print('Best validation score: {}'.format(valid_curve[best_val_epoch]))
