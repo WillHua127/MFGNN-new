@@ -148,7 +148,7 @@ class SampleCPPooling(nn.Module):
             #self.layers.append(DGLGraphConv(n_hidden, n_hidden, n_rank))
             self.layers.append(dglnn.GraphConv(n_hidden, n_hidden))
         #self.layers.append(DGLGraphConv(n_hidden, n_classes, n_rank))
-        #elf.layers.append(dglnn.GraphConv(n_hidden, n_classes))
+        self.layers.append(dglnn.GraphConv(n_hidden, n_classes))
         self.dropout = nn.Dropout(dropout)
         self.activation = activation
 
