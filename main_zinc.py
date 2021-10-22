@@ -280,8 +280,8 @@ def eval(model, device, loader):
             y_true.append(labels.detach().cpu())
             y_pred.append(pred.detach().cpu())
 
-    y_true = torch.cat(y_true, dim = 0).numpy()
-    y_pred = torch.cat(y_pred, dim = 0).numpy()
+    y_true = torch.cat(y_true, dim = 0)
+    y_pred = torch.cat(y_pred, dim = 0)
     
     epoch_test_mae = (y_pred.squeeze() - y_true).abs().mean().item()
     return epoch_test_mae
