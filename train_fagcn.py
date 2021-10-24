@@ -33,7 +33,7 @@ class Net(torch.nn.Module):
         super(Net, self).__init__()
 
         self.node_emb = Embedding(21, 75)
-        self.edge_emb = Embedding(4, 75)
+        self.edge_emb = Embedding(4, 50)
 
         aggregators = ['mean', 'min', 'max', 'std']
         scalers = ['identity', 'amplification', 'attenuation']
@@ -45,7 +45,7 @@ class Net(torch.nn.Module):
             #               aggregators=aggregators, scalers=scalers, deg=deg,
             #               edge_dim=50, towers=5, pre_layers=1, post_layers=1,
             #               divide_input=False)
-            conv = GCNConv(in_channels=75, out_channels=50, add_self_loops=False)
+            conv = GCNConv(in_channels=75, out_channels=75, add_self_loops=False)
             self.convs.append(conv)
             self.batch_norms.append(BatchNorm(75))
 
