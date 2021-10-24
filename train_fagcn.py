@@ -45,7 +45,7 @@ class Net(torch.nn.Module):
             #               aggregators=aggregators, scalers=scalers, deg=deg,
             #               edge_dim=50, towers=5, pre_layers=1, post_layers=1,
             #               divide_input=False)
-            conv = GCNConv(in_channels=75, out_channels=75)
+            conv = GCNConv(in_channels=75, out_channels=50, add_self_loops=False)
             self.convs.append(conv)
             self.batch_norms.append(BatchNorm(75))
 
