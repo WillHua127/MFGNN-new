@@ -39,7 +39,7 @@ class GCNConv(MessagePassing):
 
     def forward(self, x, edge_index, edge_attr):
         x = self.linear(x)
-        edge_embedding = self.bond_encoder(edge_attr)
+        edge_embedding = self.bond_encoder(edge_attr.squeeze())
 
         row, col = edge_index
 
