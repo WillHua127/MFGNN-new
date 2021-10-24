@@ -53,12 +53,12 @@ class Net(torch.nn.Module):
                               Linear(25, 1))
 
     def forward(self, x, edge_index, edge_attr, batch):
-        x = self.node_emb(x.squeeze())
+        x = self.node_emb(x)
         edge_attr = self.edge_emb(edge_attr)
 
         for conv, batch_norm in zip(self.convs, self.batch_norms):
-            #x = F.relu(batch_norm(conv(x, edge_index, edge_attr)))
-            x = F.relu(batch_norm(conv(x, edge_index)))
+            x = F.relu(batch_norm(conv(x, edge_index, edge_attr)))
+            #x = F.relu(batch_norm(conv(x, edge_index)))
 
         x = global_add_pool(x, batch)
         return self.mlp(x)
