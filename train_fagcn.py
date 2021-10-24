@@ -87,7 +87,7 @@ class Net(torch.nn.Module):
     def forward(self, x, edge_index, edge_attr, batch):
         #x = self.node_emb(x.squeeze())
         #edge_attr = self.edge_emb(edge_attr)
-        x = self.atom_encoder(x.squeeze())
+        x = self.atom_encoder(x)
 
         for conv, batch_norm in zip(self.convs, self.batch_norms):
             x = F.relu(batch_norm(conv(x, edge_index, edge_attr)))
