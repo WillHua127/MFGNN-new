@@ -9,7 +9,8 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch_geometric.utils import degree
 from torch_geometric.datasets import ZINC
 #from torch.utils.data import DataLoader
-from torch_geometric.nn import PNAConv, BatchNorm, global_add_pool, GCNConv
+from torch_geometric.nn import PNAConv, BatchNorm, global_add_pool#, GCNConv
+from ogb.graphproppred.mol_encoder import AtomEncoder,BondEncoder
 from tqdm import tqdm
 
 
@@ -27,6 +28,34 @@ for data in train_dataset:
     d = degree(data.edge_index[1], num_nodes=data.num_nodes, dtype=torch.long)
     deg += torch.bincount(d, minlength=deg.numel())
 
+class GCNConv(torch_geometric.nn.MessagePassing):
+    def __init__(self, emb_dim):
+        super(GCNConv, self).__init__(aggr='add')
+
+        self.linear = torch.nn.Linear(emb_dim, emb_dim)
+        self.root_emb = torch.nn.Embedding(1, emb_dim)
+        self.bond_encoder = BondEncoder(emb_dim = emb_dim)
+
+    def forward(self, x, edge_index, edge_attr):
+        x = self.linear(x)
+        edge_embedding = self.bond_encoder(edge_attr)
+
+        row, col = edge_index
+
+        #edge_weight = torch.ones((edge_index.size(1), ), device=edge_index.device)
+        deg = degree(row, x.size(0), dtype = x.dtype) + 1
+        deg_inv_sqrt = deg.pow(-0.5)
+        deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
+
+        norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
+
+        return self.propagate(edge_index, x=x, edge_attr = edge_embedding, norm=norm) + F.relu(x + self.root_emb.weight) * 1./deg.view(-1,1)
+
+    def message(self, x_j, edge_attr, norm):
+        return norm.view(-1, 1) * F.relu(x_j + edge_attr)
+
+    def update(self, aggr_out):
+        return aggr_out
 
 class Net(torch.nn.Module):
     def __init__(self):
@@ -37,6 +66,7 @@ class Net(torch.nn.Module):
 
         aggregators = ['mean', 'min', 'max', 'std']
         scalers = ['identity', 'amplification', 'attenuation']
+        self.atom_encoder = AtomEncoder(75)
 
         self.convs = ModuleList()
         self.batch_norms = ModuleList()
@@ -45,7 +75,8 @@ class Net(torch.nn.Module):
             #               aggregators=aggregators, scalers=scalers, deg=deg,
             #               edge_dim=50, towers=5, pre_layers=1, post_layers=1,
             #               divide_input=False)
-            conv = GCNConv(in_channels=75, out_channels=75, add_self_loops=False)
+            #conv = GCNConv(in_channels=75, out_channels=75, add_self_loops=False)
+            conv = GCNConv(emb_dim=75)
             self.convs.append(conv)
             self.batch_norms.append(BatchNorm(75))
 
@@ -53,8 +84,9 @@ class Net(torch.nn.Module):
                               Linear(25, 1))
 
     def forward(self, x, edge_index, edge_attr, batch):
-        x = self.node_emb(x)
-        edge_attr = self.edge_emb(edge_attr)
+        #x = self.node_emb(x.squeeze())
+        #edge_attr = self.edge_emb(edge_attr)
+        x = self.atom_encoder(x.squeeze())
 
         for conv, batch_norm in zip(self.convs, self.batch_norms):
             x = F.relu(batch_norm(conv(x, edge_index, edge_attr)))
