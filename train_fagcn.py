@@ -12,6 +12,7 @@ from torch_geometric.datasets import ZINC
 from torch_geometric.nn import PNAConv, BatchNorm, global_add_pool#, GCNConv
 from ogb.graphproppred.mol_encoder import AtomEncoder,BondEncoder
 from tqdm import tqdm
+from torch_geometric.nn import MessagePassing
 
 
 train_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split='train')
@@ -28,7 +29,7 @@ for data in train_dataset:
     d = degree(data.edge_index[1], num_nodes=data.num_nodes, dtype=torch.long)
     deg += torch.bincount(d, minlength=deg.numel())
 
-class GCNConv(torch_geometric.nn.MessagePassing):
+class GCNConv(MessagePassing):
     def __init__(self, emb_dim):
         super(GCNConv, self).__init__(aggr='add')
 
