@@ -9,7 +9,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch_geometric.utils import degree
 from torch_geometric.datasets import ZINC
 #from torch.utils.data import DataLoader
-from torch_geometric.nn import PNAConv, BatchNorm, global_add_pool
+from torch_geometric.nn import PNAConv, BatchNorm, global_add_pool, GCNConv
 from tqdm import tqdm
 
 
@@ -41,10 +41,11 @@ class Net(torch.nn.Module):
         self.convs = ModuleList()
         self.batch_norms = ModuleList()
         for _ in range(4):
-            conv = PNAConv(in_channels=75, out_channels=75,
-                           aggregators=aggregators, scalers=scalers, deg=deg,
-                           edge_dim=50, towers=5, pre_layers=1, post_layers=1,
-                           divide_input=False)
+            #conv = PNAConv(in_channels=75, out_channels=75,
+            #               aggregators=aggregators, scalers=scalers, deg=deg,
+            #               edge_dim=50, towers=5, pre_layers=1, post_layers=1,
+            #               divide_input=False)
+            conv = GCNConv(in_channels=75, out_channels=75)
             self.convs.append(conv)
             self.batch_norms.append(BatchNorm(75))
 
