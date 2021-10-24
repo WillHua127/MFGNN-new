@@ -33,7 +33,7 @@ class Net(torch.nn.Module):
         super(Net, self).__init__()
 
         self.node_emb = Embedding(21, 75)
-        self.edge_emb = Embedding(4, 50)
+        self.edge_emb = Embedding(4, 75)
 
         aggregators = ['mean', 'min', 'max', 'std']
         scalers = ['identity', 'amplification', 'attenuation']
