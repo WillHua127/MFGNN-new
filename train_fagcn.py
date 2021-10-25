@@ -248,8 +248,6 @@ class MessagePassing(torch.nn.Module):
         else:
             size[dim] = int(index.max()) + 1
         out = torch.zeros(size, dtype=src.dtype, device=src.device)
-        print("out:",out)
-        print("new")
         #return scatter_add_(dim, index, src)
         for i in range(index.size(0)):
             for j in range(index.size(1)):
