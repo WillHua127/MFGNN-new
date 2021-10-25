@@ -12,7 +12,7 @@ from torch_geometric.datasets import ZINC
 from torch_geometric.nn import PNAConv, BatchNorm, global_add_pool#, GCNConv
 from ogb.graphproppred.mol_encoder import AtomEncoder,BondEncoder
 from tqdm import tqdm
-from torch_geometric.nn import MessagePassing
+#from torch_geometric.nn import MessagePassing
 
 
 from typing import List, Optional, Set, Callable, get_type_hints
