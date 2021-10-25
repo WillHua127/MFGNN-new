@@ -76,8 +76,8 @@ class Net(torch.nn.Module):
             #               aggregators=aggregators, scalers=scalers, deg=deg,
             #               edge_dim=50, towers=5, pre_layers=1, post_layers=1,
             #               divide_input=False)
-            #conv = GCNConv(in_channels=75, out_channels=75, add_self_loops=False)
-            conv = GCNConv(emb_dim=75)
+            conv = GCNConv(in_channels=75, out_channels=75, add_self_loops=False)
+            #conv = GCNConv(emb_dim=75)
             self.convs.append(conv)
             self.batch_norms.append(BatchNorm(75))
 
@@ -85,13 +85,13 @@ class Net(torch.nn.Module):
                               Linear(25, 1))
 
     def forward(self, x, edge_index, edge_attr, batch):
-        #x = self.node_emb(x.squeeze())
-        #edge_attr = self.edge_emb(edge_attr)
-        x = self.atom_encoder(x)
+        x = self.node_emb(x.squeeze())
+        edge_attr = self.edge_emb(edge_attr)
+        #x = self.atom_encoder(x)
         
 
         for conv, batch_norm in zip(self.convs, self.batch_norms):
-            edge_attr = self.edge_emb(edge_attr)
+            #edge_attr = self.edge_emb(edge_attr)
             x = F.relu(batch_norm(conv(x, edge_index, edge_attr)))
             #x = F.relu(batch_norm(conv(x, edge_index)))
 
