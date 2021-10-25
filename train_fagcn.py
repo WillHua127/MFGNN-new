@@ -162,32 +162,26 @@ class MessagePassing(torch.nn.Module):
         return out
 
     def propagate(self, edge_index: Adj, size: Size = None, **kwargs):
-        print("hello")
         for hook in self._propagate_forward_pre_hooks.values():
             res = hook(self, (edge_index, size, kwargs))
             if res is not None:
                 edge_index, size, kwargs = res
 
         size = self.__check_input__(edge_index, size)
-        print("size:",size)
 
         if isinstance(edge_index, Tensor) or not self.fuse:
             coll_dict = self.__collect__(self.__user_args__, edge_index, size,
                                          kwargs)
-            print("coll dict:",coll_dict)
-
             msg_kwargs = self.inspector.distribute('message', coll_dict)
             for hook in self._message_forward_pre_hooks.values():
                 res = hook(self, (msg_kwargs, ))
                 if res is not None:
                     msg_kwargs = res[0] if isinstance(res, tuple) else res
             out = self.message(**msg_kwargs)
-            print("message:",out)
             for hook in self._message_forward_hooks.values():
                 res = hook(self, (msg_kwargs, ), out)
                 if res is not None:
                     out = res
-
 
             aggr_kwargs = self.inspector.distribute('aggregate', coll_dict)
             for hook in self._aggregate_forward_pre_hooks.values():
@@ -195,7 +189,6 @@ class MessagePassing(torch.nn.Module):
                 if res is not None:
                     aggr_kwargs = res[0] if isinstance(res, tuple) else res
             out = self.aggregate(out, **aggr_kwargs)
-            print("aggregate:",out)
             for hook in self._aggregate_forward_hooks.values():
                 res = hook(self, (aggr_kwargs, ), out)
                 if res is not None:
@@ -203,7 +196,6 @@ class MessagePassing(torch.nn.Module):
 
             update_kwargs = self.inspector.distribute('update', coll_dict)
             out = self.update(out, **update_kwargs)
-            print("update:",out)
 
         for hook in self._propagate_forward_hooks.values():
             res = hook(self, (edge_index, size, kwargs), out)
@@ -220,12 +212,6 @@ class MessagePassing(torch.nn.Module):
                   ptr: Optional[Tensor] = None,
                   dim_size: Optional[int] = None) -> Tensor:
         
-        print("")
-        
-        print("inputs:",inputs)
-        print("index:",index)
-        print("ptr:",ptr)
-        print("dim size:",dim_size)
         return self.scatter_sum_product(inputs, index, dim=self.node_dim, dim_size=dim_size)
 
     def update(self, inputs: Tensor) -> Tensor:
@@ -235,11 +221,7 @@ class MessagePassing(torch.nn.Module):
     def scatter_sum_product(self, src: torch.Tensor, index: torch.Tensor, dim: int = -1,
                 out: Optional[torch.Tensor] = None,
                 dim_size: Optional[int] = None) -> torch.Tensor:
-        print("index:",index)
-        print("src:",src)
-        print("dim:",dim)
         index = broadcast(index, src, dim)
-        print("index:",index)
         if out is None:
             size = list(src.size())
             if dim_size is not None:
@@ -249,7 +231,6 @@ class MessagePassing(torch.nn.Module):
             else:
                 size[dim] = int(index.max()) + 1
             out = torch.zeros(size, dtype=src.dtype, device=src.device)
-            print("out:",out)
             return out.scatter_add_(dim, index, src)
         else:
             return out.scatter_add_(dim, index, src)
@@ -258,11 +239,7 @@ class MessagePassing(torch.nn.Module):
     def scatter_element_product(self, src: torch.Tensor, index: torch.Tensor, dim: int = -1,
             out: Optional[torch.Tensor] = None, dim_size: Optional[int] = None) -> torch.Tensor:
     
-        print("index:",index)
-        print("src:",src)
-        print("dim:",dim)
         index = broadcast(index, src, dim)
-        print("index:",index)
         size = list(src.size())
         if dim_size is not None:
             size[dim] = dim_size
