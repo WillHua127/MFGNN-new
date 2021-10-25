@@ -213,7 +213,7 @@ class MessagePassing(torch.nn.Module):
                   ptr: Optional[Tensor] = None,
                   dim_size: Optional[int] = None) -> Tensor:
         
-        return self.scatter_sum_product(inputs, index, dim=self.node_dim, dim_size=dim_size)
+        return self.scatter_element_product(inputs, index, dim=self.node_dim, dim_size=dim_size)
 
     def update(self, inputs: Tensor) -> Tensor:
         return inputs
