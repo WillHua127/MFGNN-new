@@ -63,21 +63,18 @@ class Net(torch.nn.Module):
         super(Net, self).__init__()
 
         self.node_emb = Embedding(21, 75)
-        self.edge_emb = Embedding(4, 75)
+        self.edge_emb = Embedding(4, 50)
 
         aggregators = ['mean', 'min', 'max', 'std']
         scalers = ['identity', 'amplification', 'attenuation']
-        self.atom_encoder = AtomEncoder(75)
 
         self.convs = ModuleList()
         self.batch_norms = ModuleList()
         for _ in range(4):
-            #conv = PNAConv(in_channels=75, out_channels=75,
-            #               aggregators=aggregators, scalers=scalers, deg=deg,
-            #               edge_dim=50, towers=5, pre_layers=1, post_layers=1,
-            #               divide_input=False)
-            conv = GCNConv(in_channels=75, out_channels=75, add_self_loops=False)
-            #conv = GCNConv(emb_dim=75)
+            conv = PNAConv(in_channels=75, out_channels=75,
+                           aggregators=aggregators, scalers=scalers, deg=deg,
+                           edge_dim=50, towers=5, pre_layers=1, post_layers=1,
+                           divide_input=False)
             self.convs.append(conv)
             self.batch_norms.append(BatchNorm(75))
 
@@ -87,13 +84,9 @@ class Net(torch.nn.Module):
     def forward(self, x, edge_index, edge_attr, batch):
         x = self.node_emb(x.squeeze())
         edge_attr = self.edge_emb(edge_attr)
-        #x = self.atom_encoder(x)
-        
 
         for conv, batch_norm in zip(self.convs, self.batch_norms):
-            #edge_attr = self.edge_emb(edge_attr)
             x = F.relu(batch_norm(conv(x, edge_index, edge_attr)))
-            #x = F.relu(batch_norm(conv(x, edge_index)))
 
         x = global_add_pool(x, batch)
         return self.mlp(x)
@@ -110,7 +103,7 @@ def train(epoch):
     model.train()
 
     total_loss = 0
-    for step, data in enumerate(tqdm(train_loader, desc="Iteration")):
+    for data in train_loader:
         data = data.to(device)
         optimizer.zero_grad()
         out = model(data.x, data.edge_index, data.edge_attr, data.batch)
@@ -126,7 +119,7 @@ def test(loader):
     model.eval()
 
     total_error = 0
-    for step, data in enumerate(tqdm(loader, desc="Iteration")):
+    for data in loader:
         data = data.to(device)
         out = model(data.x, data.edge_index, data.edge_attr, data.batch)
         total_error += (out.squeeze() - data.y).abs().sum().item()
