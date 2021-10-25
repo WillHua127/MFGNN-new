@@ -39,7 +39,7 @@ class GCNConv(MessagePassing):
 
     def forward(self, x, edge_index, edge_attr):
         x = self.linear(x)
-        edge_embedding = self.bond_encoder(edge_attr.squeeze())
+        edge_embedding = edge_attr#self.bond_encoder(edge_attr.squeeze())
 
         row, col = edge_index
 
@@ -88,8 +88,10 @@ class Net(torch.nn.Module):
         #x = self.node_emb(x.squeeze())
         #edge_attr = self.edge_emb(edge_attr)
         x = self.atom_encoder(x)
+        
 
         for conv, batch_norm in zip(self.convs, self.batch_norms):
+            edge_attr = self.edge_emb(edge_attr)
             x = F.relu(batch_norm(conv(x, edge_index, edge_attr)))
             #x = F.relu(batch_norm(conv(x, edge_index)))
 
