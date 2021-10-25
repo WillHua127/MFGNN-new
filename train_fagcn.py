@@ -17,6 +17,7 @@ from tqdm import tqdm
 
 from typing import List, Optional, Set, Callable, get_type_hints
 from torch_geometric.typing import Adj, Size
+from torch_scatter.utils import broadcast
 
 import os
 import re
