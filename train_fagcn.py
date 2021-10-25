@@ -15,6 +15,30 @@ from tqdm import tqdm
 from torch_geometric.nn import MessagePassing
 
 
+from typing import List, Optional, Set, Callable, get_type_hints
+from torch_geometric.typing import Adj, Size
+
+import os
+import re
+import inspect
+import os.path as osp
+from uuid import uuid1
+from itertools import chain
+from inspect import Parameter
+from collections import OrderedDict
+
+import torch
+from torch import Tensor
+from jinja2 import Template
+from torch.utils.hooks import RemovableHandle
+from torch_sparse import SparseTensor
+#from torch_scatter import gather_csr, scatter, segment_csr
+
+from torch_geometric.nn.conv.utils.helpers import expand_left
+from torch_geometric.nn.conv.utils.jit import class_from_module_repr
+from torch_geometric.nn.conv.utils.typing import (sanitize, split_types_repr, parse_types, resolve_types)
+from torch_geometric.nn.conv.utils.inspector import Inspector, func_header_repr, func_body_repr
+
 train_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split='train')
 val_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split='val')
 test_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split='test')
