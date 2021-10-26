@@ -204,7 +204,7 @@ class MessagePassing(torch.nn.Module):
 #                 res = hook(self, (aggr_kwargs, ))
 #                 if res is not None:
 #                     aggr_kwargs = res[0] if isinstance(res, tuple) else res
-            x_sum, x_prod = self.aggregate((x_sum, x_prod), edge_index[1],ptr=None,dim_size=3)
+            x_sum, x_prod = self.aggregate((x_sum, x_prod), edge_index[1],ptr=None)
 #             for hook in self._aggregate_forward_hooks.values():
 #                 res = hook(self, (aggr_kwargs, ), out)
 #                 if res is not None:
@@ -229,7 +229,7 @@ class MessagePassing(torch.nn.Module):
                   ptr: Optional[Tensor] = None,
                   dim_size: Optional[int] = None) -> Tensor:
         
-        return self.scatter_sum(inputs[0], index, dim=self.node_dim, dim_size=dim_size),self.scatter_product(inputs[1], index, dim=self.node_dim, dim_size=dim_size)
+        return self.scatter_sum(inputs[0], index, dim=self.node_dim),self.scatter_product(inputs[1], index, dim=self.node_dim)
 
     def update(self, inputs: Tensor) -> Tensor:
         return inputs
