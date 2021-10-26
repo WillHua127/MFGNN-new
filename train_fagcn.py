@@ -132,7 +132,7 @@ class MessagePassing(torch.nn.Module):
                 #data_sum = x[0]
                 #data_prod = x[1]
                 #out[arg] = kwargs.get(arg, Parameter.empty)
-                skip
+                pass
             else:
                 dim = 0 if arg[-2:] == '_j' else 1
                 #data = kwargs.get(arg[:-2], Parameter.empty)
