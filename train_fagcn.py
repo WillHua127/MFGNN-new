@@ -129,10 +129,10 @@ class MessagePassing(torch.nn.Module):
 #        out = {}
         for arg in args:
             if arg[-2:] not in ['_i', '_j']:
-                print(arg)
-                data_sum = x[0]
-                data_prod = x[1]
+                #data_sum = x[0]
+                #data_prod = x[1]
                 #out[arg] = kwargs.get(arg, Parameter.empty)
+                skip
             else:
                 dim = 0 if arg[-2:] == '_j' else 1
                 #data = kwargs.get(arg[:-2], Parameter.empty)
@@ -148,9 +148,9 @@ class MessagePassing(torch.nn.Module):
 
                 #if isinstance(data, Tensor):
                 if isinstance(data_sum, Tensor) and isinstance(data_prod, Tensor):
-#                     self.__set_size__(size, dim, data)
-#                     data = self.__lift__(data, edge_index,
-#                                          j if arg[-2:] == '_j' else i)
+    #                     self.__set_size__(size, dim, data)
+    #                     data = self.__lift__(data, edge_index,
+    #                                          j if arg[-2:] == '_j' else i)
                     self.__set_size__(size, dim, data_sum)
                     data_sum = self.__lift__(data_sum, edge_index, j if arg[-2:] == '_j' else i)
                     data_prod = self.__lift__(data_prod, edge_index, j if arg[-2:] == '_j' else i)
@@ -216,7 +216,7 @@ class MessagePassing(torch.nn.Module):
 #             if res is not None:
 #                 out = res
 
-        return out, sum_out
+        return x_sum, x_prod
 
     def message(self, x_j: Tensor) -> Tensor:
         return x_j
