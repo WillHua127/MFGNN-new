@@ -248,7 +248,7 @@ class MessagePassing(torch.nn.Module):
             size[dim] = 0
         else:
             size[dim] = int(index.max()) + 1
-        out = torch.zeros(size, dtype=src.dtype, device=src.device)
+        out = torch.ones(size, dtype=src.dtype, device=src.device)
         #return scatter_add_(dim, index, src)
         #for i in range(index.size(0)):
         #    for j in range(index.size(1)):
@@ -260,7 +260,7 @@ class MessagePassing(torch.nn.Module):
         #for i in range(out.shape[0]):
         #    out[i]=torch.sum(src[index==i], dim=0)
         #with torch.no_grad():
-        out.scatter_(dim, index, src, reduce='add')
+        out.scatter_(dim, index, src, reduce='multiply')
         return torch.nn.Parameter(out, requires_grad=True)
     
     
