@@ -129,7 +129,10 @@ class MessagePassing(torch.nn.Module):
 #        out = {}
         for arg in args:
             if arg[-2:] not in ['_i', '_j']:
-                out[arg] = kwargs.get(arg, Parameter.empty)
+                print(arg)
+                data_sum = x[0]
+                data_prod = x[1]
+                #out[arg] = kwargs.get(arg, Parameter.empty)
             else:
                 dim = 0 if arg[-2:] == '_j' else 1
                 #data = kwargs.get(arg[:-2], Parameter.empty)
