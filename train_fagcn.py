@@ -174,34 +174,34 @@ class MessagePassing(torch.nn.Module):
             coll_dict = self.__collect__(self.__user_args__, edge_index, size,
                                          kwargs)
             msg_kwargs = self.inspector.distribute('message', coll_dict)
-            for hook in self._message_forward_pre_hooks.values():
-                res = hook(self, (msg_kwargs, ))
-                if res is not None:
-                    msg_kwargs = res[0] if isinstance(res, tuple) else res
+#             for hook in self._message_forward_pre_hooks.values():
+#                 res = hook(self, (msg_kwargs, ))
+#                 if res is not None:
+#                     msg_kwargs = res[0] if isinstance(res, tuple) else res
             out = self.message(**msg_kwargs)
-            for hook in self._message_forward_hooks.values():
-                res = hook(self, (msg_kwargs, ), out)
-                if res is not None:
-                    out = res
+#             for hook in self._message_forward_hooks.values():
+#                 res = hook(self, (msg_kwargs, ), out)
+#                 if res is not None:
+#                     out = res
 
             aggr_kwargs = self.inspector.distribute('aggregate', coll_dict)
-            for hook in self._aggregate_forward_pre_hooks.values():
-                res = hook(self, (aggr_kwargs, ))
-                if res is not None:
-                    aggr_kwargs = res[0] if isinstance(res, tuple) else res
+#             for hook in self._aggregate_forward_pre_hooks.values():
+#                 res = hook(self, (aggr_kwargs, ))
+#                 if res is not None:
+#                     aggr_kwargs = res[0] if isinstance(res, tuple) else res
             out = self.aggregate(out, **aggr_kwargs)
-            for hook in self._aggregate_forward_hooks.values():
-                res = hook(self, (aggr_kwargs, ), out)
-                if res is not None:
-                    out = res
+#             for hook in self._aggregate_forward_hooks.values():
+#                 res = hook(self, (aggr_kwargs, ), out)
+#                 if res is not None:
+#                     out = res
 
-            update_kwargs = self.inspector.distribute('update', coll_dict)
-            out = self.update(out, **update_kwargs)
+#             update_kwargs = self.inspector.distribute('update', coll_dict)
+#             out = self.update(out, **update_kwargs)
 
-        for hook in self._propagate_forward_hooks.values():
-            res = hook(self, (edge_index, size, kwargs), out)
-            if res is not None:
-                out = res
+#         for hook in self._propagate_forward_hooks.values():
+#             res = hook(self, (edge_index, size, kwargs), out)
+#             if res is not None:
+#                 out = res
 
         return out
 
