@@ -84,12 +84,12 @@ class MessagePassing(torch.nn.Module):
 
 
         # Hooks:
-        self._propagate_forward_pre_hooks = OrderedDict()
-        self._propagate_forward_hooks = OrderedDict()
-        self._message_forward_pre_hooks = OrderedDict()
-        self._message_forward_hooks = OrderedDict()
-        self._aggregate_forward_pre_hooks = OrderedDict()
-        self._aggregate_forward_hooks = OrderedDict()
+#         self._propagate_forward_pre_hooks = OrderedDict()
+#         self._propagate_forward_hooks = OrderedDict()
+#         self._message_forward_pre_hooks = OrderedDict()
+#         self._message_forward_hooks = OrderedDict()
+#         self._aggregate_forward_pre_hooks = OrderedDict()
+#         self._aggregate_forward_hooks = OrderedDict()
 
     def __check_input__(self, edge_index, size):
         the_size: List[Optional[int]] = [None, None]
