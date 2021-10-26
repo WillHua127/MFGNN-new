@@ -123,46 +123,54 @@ class MessagePassing(torch.nn.Module):
             return src.index_select(self.node_dim, index)
 
 
-    def __collect__(self, args, edge_index, size, kwargs):
+    def __collect__(self, args, edge_index, size, x):
         i, j = (1, 0) if self.flow == 'source_to_target' else (0, 1)
 
-        out = {}
+#        out = {}
         for arg in args:
             if arg[-2:] not in ['_i', '_j']:
                 out[arg] = kwargs.get(arg, Parameter.empty)
             else:
                 dim = 0 if arg[-2:] == '_j' else 1
-                data = kwargs.get(arg[:-2], Parameter.empty)
+                #data = kwargs.get(arg[:-2], Parameter.empty)
+                data = x
 
                 if isinstance(data, (tuple, list)):
                     assert len(data) == 2
                     if isinstance(data[1 - dim], Tensor):
                         self.__set_size__(size, 1 - dim, data[1 - dim])
-                    data = data[dim]
+                    #data = data[dim]
+                    data_sum = data[dim]
+                    data_prod = data[dim+1]
 
-                if isinstance(data, Tensor):
-                    self.__set_size__(size, dim, data)
-                    data = self.__lift__(data, edge_index,
-                                         j if arg[-2:] == '_j' else i)
+                #if isinstance(data, Tensor):
+                if isinstance(data_sum, Tensor) and if isinstance(data_prod, Tensor):
+#                     self.__set_size__(size, dim, data)
+#                     data = self.__lift__(data, edge_index,
+#                                          j if arg[-2:] == '_j' else i)
+                    self.__set_size__(size, dim, data_sum)
+                    data_sum = self.__lift__(data_sum, edge_index, j if arg[-2:] == '_j' else i)
+                    data_prod = self.__lift__(data_prod, edge_index, j if arg[-2:] == '_j' else i)
 
-                out[arg] = data
+#                out[arg] = data
 
-        if isinstance(edge_index, Tensor):
-            out['adj_t'] = None
-            out['edge_index'] = edge_index
-            out['edge_index_i'] = edge_index[i]
-            out['edge_index_j'] = edge_index[j]
-            out['ptr'] = None
+#         if isinstance(edge_index, Tensor):
+#             out['adj_t'] = None
+#             out['edge_index'] = edge_index
+#             out['edge_index_i'] = edge_index[i]
+#             out['edge_index_j'] = edge_index[j]
+#             out['ptr'] = None
 
-        out['index'] = out['edge_index_i']
-        out['size'] = size
-        out['size_i'] = size[1] or size[0]
-        out['size_j'] = size[0] or size[1]
-        out['dim_size'] = out['size_i']
+#         out['index'] = out['edge_index_i']
+#         out['size'] = size
+#         out['size_i'] = size[1] or size[0]
+#         out['size_j'] = size[0] or size[1]
+#         out['dim_size'] = out['size_i']
 
-        return out
+        #return out
+        return data_sum, data_prod
 
-    def propagate(self, edge_index: Adj, size: Size = None, **kwargs):
+    def propagate(self, edge_index: Adj, x, size: Size = None, edge_attr = None, norm=None):
 #         for hook in self._propagate_forward_pre_hooks.values():
 #             res = hook(self, (edge_index, size, kwargs))
 #             if res is not None:
@@ -171,25 +179,27 @@ class MessagePassing(torch.nn.Module):
         size = self.__check_input__(edge_index, size)
 
         if isinstance(edge_index, Tensor) or not self.fuse:
-            coll_dict = self.__collect__(self.__user_args__, edge_index, size,
-                                         kwargs)
-            msg_kwargs = self.inspector.distribute('message', coll_dict)
+#             coll_dict = self.__collect__(self.__user_args__, edge_index, size,
+#                                          kwargs)
+#             msg_kwargs = self.inspector.distribute('message', coll_dict)
+            x_sum,x_prod = self.__collect__(self.__user_args__, edge_index, size, x)
 #             for hook in self._message_forward_pre_hooks.values():
 #                 res = hook(self, (msg_kwargs, ))
 #                 if res is not None:
 #                     msg_kwargs = res[0] if isinstance(res, tuple) else res
-            out = self.message(**msg_kwargs)
+            #out = self.message(**msg_kwargs)
+            x_sum = self.message(x_sum, edge_attr, norm)
 #             for hook in self._message_forward_hooks.values():
 #                 res = hook(self, (msg_kwargs, ), out)
 #                 if res is not None:
 #                     out = res
 
-            aggr_kwargs = self.inspector.distribute('aggregate', coll_dict)
+#            aggr_kwargs = self.inspector.distribute('aggregate', coll_dict)
 #             for hook in self._aggregate_forward_pre_hooks.values():
 #                 res = hook(self, (aggr_kwargs, ))
 #                 if res is not None:
 #                     aggr_kwargs = res[0] if isinstance(res, tuple) else res
-            out, sum_out = self.aggregate(out, **aggr_kwargs)
+            x_sum, x_prod = self.aggregate((x_sum, x_prod), edge_index[1],ptr=None,dim_size=3)
 #             for hook in self._aggregate_forward_hooks.values():
 #                 res = hook(self, (aggr_kwargs, ), out)
 #                 if res is not None:
@@ -213,13 +223,13 @@ class MessagePassing(torch.nn.Module):
                   ptr: Optional[Tensor] = None,
                   dim_size: Optional[int] = None) -> Tensor:
         
-        return self.scatter_element_product(inputs, index, dim=self.node_dim, dim_size=dim_size),self.scatter_sum_product(inputs, index, dim=self.node_dim, dim_size=dim_size)
+        return self.scatter_sum(inputs[0], index, dim=self.node_dim, dim_size=dim_size),self.scatter_product(inputs[1], index, dim=self.node_dim, dim_size=dim_size)
 
     def update(self, inputs: Tensor) -> Tensor:
         return inputs
     
     
-    def scatter_sum_product(self, src: torch.Tensor, index: torch.Tensor, dim: int = -1,
+    def scatter_sum(self, src: torch.Tensor, index: torch.Tensor, dim: int = -1,
                 out: Optional[torch.Tensor] = None,
                 dim_size: Optional[int] = None) -> torch.Tensor:
         index = broadcast(index, src, dim)
@@ -237,7 +247,7 @@ class MessagePassing(torch.nn.Module):
             return out.scatter_add_(dim, index, src)
     
     
-    def scatter_element_product(self, src: torch.Tensor, index: torch.Tensor, dim: int = -1,
+    def scatter_product(self, src: torch.Tensor, index: torch.Tensor, dim: int = -1,
             out: Optional[torch.Tensor] = None, dim_size: Optional[int] = None) -> torch.Tensor:
     
         index = broadcast(index, src, dim)
@@ -268,12 +278,14 @@ class GCNConv(MessagePassing):
     def __init__(self, emb_dim):
         super(GCNConv, self).__init__(aggr='add')
 
-        self.linear = torch.nn.Linear(emb_dim, emb_dim)
+        self.lin_sum = torch.nn.Linear(emb_dim, emb_dim)
+        self.lin_prod = torch.nn.Linear(emb_dim, emb_dim)
         self.root_emb = torch.nn.Embedding(1, emb_dim)
         self.bond_encoder = BondEncoder(emb_dim = emb_dim)
 
     def forward(self, x, edge_index, edge_attr):
-        x = self.linear(x)
+        x_sum = self.lin_sum(x)
+        x_prod = self.lin_prod(x)
         edge_embedding = edge_attr#self.bond_encoder(edge_attr.squeeze())
 
         row, col = edge_index
@@ -285,7 +297,7 @@ class GCNConv(MessagePassing):
 
         norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
         
-        prod_agg, sum_agg = self.propagate(edge_index, x=x, edge_attr = edge_embedding, norm=norm)
+        sum_agg, prod_agg = self.propagate(edge_index, x=(x_sum,x_prod), edge_attr = edge_embedding, norm=norm)
 
         return prod_agg+sum_agg + F.relu(x + self.root_emb.weight) * 1./deg.view(-1,1)
 
