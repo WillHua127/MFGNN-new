@@ -163,10 +163,10 @@ class MessagePassing(torch.nn.Module):
         return out
 
     def propagate(self, edge_index: Adj, size: Size = None, **kwargs):
-        for hook in self._propagate_forward_pre_hooks.values():
-            res = hook(self, (edge_index, size, kwargs))
-            if res is not None:
-                edge_index, size, kwargs = res
+#         for hook in self._propagate_forward_pre_hooks.values():
+#             res = hook(self, (edge_index, size, kwargs))
+#             if res is not None:
+#                 edge_index, size, kwargs = res
 
         size = self.__check_input__(edge_index, size)
 
