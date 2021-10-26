@@ -240,7 +240,7 @@ class MessagePassing(torch.nn.Module):
     def scatter_element_product(self, src: torch.Tensor, index: torch.Tensor, dim: int = -1,
             out: Optional[torch.Tensor] = None, dim_size: Optional[int] = None) -> torch.Tensor:
     
-        index = broadcast(index, src, dim)
+        #index = broadcast(index, src, dim)
         size = list(src.size())
         if dim_size is not None:
             size[dim] = dim_size
@@ -250,13 +250,15 @@ class MessagePassing(torch.nn.Module):
             size[dim] = int(index.max()) + 1
         out = torch.zeros(size, dtype=src.dtype, device=src.device)
         #return scatter_add_(dim, index, src)
-        for i in range(index.size(0)):
-            for j in range(index.size(1)):
-                replace_idx = index[i][j]
-                if dim == -2:
-                    out[replace_idx][j] = out[replace_idx][j]+src[i][j]
-                elif dim == -1:
-                    out[i][replace_index] = out[i][replace_index]+src[i][j]
+        #for i in range(index.size(0)):
+        #    for j in range(index.size(1)):
+        #        replace_idx = index[i][j]
+        #        if dim == -2:
+        #            out[replace_idx][j] = out[replace_idx][j]+src[i][j]
+        #        elif dim == -1:
+        #            out[i][replace_index] = out[i][replace_index]+src[i][j]
+        for i in range(out.shape[0]):
+            out[i]=torch.sum(src[index==i], dim=0)
         return out
     
     
