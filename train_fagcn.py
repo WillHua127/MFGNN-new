@@ -190,7 +190,9 @@ class MessagePassing(torch.nn.Module):
 #                 res = hook(self, (msg_kwargs, ))
 #                 if res is not None:
 #                     msg_kwargs = res[0] if isinstance(res, tuple) else res
+            print('x_sumx_prod',x_sum.shape,x_prod.shape)
             x_sum = self.message_simple(x_sum)
+            print('x_sumx_prod',x_sum.shape,x_prod.shape)
             #x_sum = self.message(x_sum, edge_attr, norm)
 #             for hook in self._message_forward_hooks.values():
 #                 res = hook(self, (msg_kwargs, ), out)
@@ -216,6 +218,7 @@ class MessagePassing(torch.nn.Module):
 #             if res is not None:
 #                 out = res
 
+        print('x_sumx_prod',x_sum.shape,x_prod.shape)
         return x_sum, x_prod
 
     def message_simple(self, x_j: Tensor) -> Tensor:
@@ -302,6 +305,7 @@ class GCNConv(MessagePassing):
         
         sum_agg, prod_agg = self.propagate(edge_index, x=(x_sum,x_prod), edge_attr = edge_embedding, norm=norm)
 
+        print('sum_aggprod_agg',sum_agg.shape,prod_agg.shape)
         return prod_agg+sum_agg + F.relu(x + self.root_emb.weight) * 1./deg.view(-1,1)
 
     def message(self, x_j, edge_attr, norm):
