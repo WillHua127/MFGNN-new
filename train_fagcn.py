@@ -9,7 +9,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch_geometric.utils import degree
 from torch_geometric.datasets import ZINC
 #from torch.utils.data import DataLoader
-from torch_geometric.nn import PNAConv, BatchNorm, global_add_pool#, GCNConv
+from torch_geometric.nn import BatchNorm, global_add_pool#, GCNConv
 from ogb.graphproppred.mol_encoder import AtomEncoder,BondEncoder
 from tqdm import tqdm
 #from torch_geometric.nn import MessagePassing
@@ -259,8 +259,8 @@ class MessagePassing(torch.nn.Module):
         #            out[i][replace_index] = out[i][replace_index]+src[i][j]
         #for i in range(out.shape[0]):
         #    out[i]=torch.sum(src[index==i], dim=0)
-        with torch.no_grad():
-            out.scatter_(dim, index, src, reduce='multiply')
+        #with torch.no_grad():
+        out.scatter_(dim, index, src, reduce='multiply')
         return torch.nn.Parameter(out, requires_grad=True)
     
     
