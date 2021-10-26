@@ -10,7 +10,7 @@ from torch_geometric.utils import degree
 from torch_geometric.datasets import ZINC
 #from torch.utils.data import DataLoader
 from torch_geometric.nn import BatchNorm, global_add_pool#, GCNConv
-from ogb.graphproppred.mol_encoder import AtomEncoder,BondEncoder
+#from ogb.graphproppred.mol_encoder import AtomEncoder,BondEncoder
 from tqdm import tqdm
 #from torch_geometric.nn import MessagePassing
 
@@ -282,14 +282,21 @@ class GCNConv(MessagePassing):
     def __init__(self, emb_dim):
         super(GCNConv, self).__init__(aggr='add')
 
-        self.lin_sum = torch.nn.Linear(emb_dim, emb_dim)
-        self.lin_prod = torch.nn.Linear(emb_dim, emb_dim)
+        self.w1 = torch.nn.Linear(emb_dim, emb_dim)
+        self.w2 = torch.nn.Linear(emb_dim, emb_dim)
+        self.v = torch.nn.Linear(emb_dim, emb_dim)
         self.root_emb = torch.nn.Embedding(1, emb_dim)
-        self.bond_encoder = BondEncoder(emb_dim = emb_dim)
+        #self.bond_encoder = BondEncoder(emb_dim = emb_dim)
+        self.reset_parameters()
+        
+    def reset_parameters(self):
+        self.w1.reset_parameters()
+        self.w2.reset_parameters()
+        self.v.reset_parameters()
 
     def forward(self, x, edge_index, edge_attr):
-        x_sum = self.lin_sum(x)
-        x_prod = self.lin_prod(x)
+        x_sum, x_prod = self.w1(x),self.w2(x)
+        #x_prod = self.w2(x)
         edge_embedding = edge_attr#self.bond_encoder(edge_attr.squeeze())
 
         row, col = edge_index
@@ -303,7 +310,7 @@ class GCNConv(MessagePassing):
         
         sum_agg, prod_agg = self.propagate(edge_index, x=(x_sum,x_prod), edge_attr = edge_embedding, norm=norm)
 
-        return prod_agg+sum_agg + F.relu(x + self.root_emb.weight) * 1./deg.view(-1,1)
+        return self.v(prod_agg)+sum_agg + F.relu(x + self.root_emb.weight) * 1./deg.view(-1,1)
 
     def message(self, x_j, edge_attr, norm):
         return norm.view(-1, 1) * F.relu(x_j + edge_attr)
