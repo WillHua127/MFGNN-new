@@ -353,14 +353,7 @@ class Net(torch.nn.Module):
         return self.mlp(x)
 
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = Net().to(device)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=20,
-                              min_lr=0.00001)
-
-
-def train(epoch):
+def train(model, epoch):
     model.train()
 
     total_loss = 0
@@ -376,7 +369,7 @@ def train(epoch):
 
 
 @torch.no_grad()
-def test(loader):
+def test(model, loader):
     model.eval()
 
     total_error = 0
@@ -387,10 +380,24 @@ def test(loader):
     return total_error / len(loader.dataset)
 
 
-for epoch in range(1, 5000):
-    loss = train(epoch)
-    val_mae = test(val_loader)
-    test_mae = test(test_loader)
-    scheduler.step(val_mae)
-    print(f'Epoch: {epoch:02d}, Loss: {loss:.4f}, Val: {val_mae:.4f}, '
-          f'Test: {test_mae:.4f}')
+
+lrs = [0.01, 0.05]#, 0.001, 0.005, 0.03, 0.003, 0.0005, 0.0001]
+for lr in lrs:
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = Net().to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=20,
+                                  min_lr=0.00001)
+
+    best_eval = 1000000
+    best_test = 1000000
+    for epoch in range(1, 10):
+        loss = train(model, epoch)
+        val_mae = test(model, val_loader)
+        test_mae = test(model, test_loader)
+        if val_mae < best_eval:
+            best_eval = val_mae
+            best_test = test_mae
+        scheduler.step(val_mae)
+        print(f'Epoch: {epoch:02d}, Loss: {loss:.4f}, Val: {val_mae:.4f}, '
+              f'Test: {test_mae:.4f}', f'Best val: {best_eval:.4f}', f'Best test: {best_test:.4f}')
