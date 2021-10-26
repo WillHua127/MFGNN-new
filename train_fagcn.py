@@ -206,6 +206,7 @@ class MessagePassing(torch.nn.Module):
         return out, sum_out
 
     def message(self, x_j: Tensor) -> Tensor:
+        print('notme')
         return x_j
 
 
@@ -290,6 +291,7 @@ class GCNConv(MessagePassing):
         return prod_agg+sum_agg + F.relu(x + self.root_emb.weight) * 1./deg.view(-1,1)
 
     def message(self, x_j, edge_attr, norm):
+        print('itsme')
         return norm.view(-1, 1) * F.relu(x_j + edge_attr)
 
     def update(self, aggr_out):
