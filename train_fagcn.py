@@ -259,8 +259,8 @@ class MessagePassing(torch.nn.Module):
         #            out[i][replace_index] = out[i][replace_index]+src[i][j]
         #for i in range(out.shape[0]):
         #    out[i]=torch.sum(src[index==i], dim=0)
-        #with torch.no_grad():
-        out.scatter_(dim, index, src, reduce='multiply')
+        with torch.no_grad():
+            out.scatter_(dim, index, src, reduce='multiply')
         return torch.nn.Parameter(out, requires_grad=True)
     
     
