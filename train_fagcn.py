@@ -190,8 +190,8 @@ class MessagePassing(torch.nn.Module):
 #                 res = hook(self, (msg_kwargs, ))
 #                 if res is not None:
 #                     msg_kwargs = res[0] if isinstance(res, tuple) else res
-            #out = self.message(**msg_kwargs)
-            x_sum = self.message(x_sum, edge_attr, norm)
+            x_sum = self.message_simple(x_sum)
+            #x_sum = self.message(x_sum, edge_attr, norm)
 #             for hook in self._message_forward_hooks.values():
 #                 res = hook(self, (msg_kwargs, ), out)
 #                 if res is not None:
@@ -218,7 +218,7 @@ class MessagePassing(torch.nn.Module):
 
         return x_sum, x_prod
 
-    def message(self, x_j: Tensor) -> Tensor:
+    def message_simple(self, x_j: Tensor) -> Tensor:
         return x_j
 
 
