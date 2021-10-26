@@ -144,7 +144,7 @@ class MessagePassing(torch.nn.Module):
                     data_prod = data[dim+1]
 
                 #if isinstance(data, Tensor):
-                if isinstance(data_sum, Tensor) and if isinstance(data_prod, Tensor):
+                if isinstance(data_sum, Tensor) and isinstance(data_prod, Tensor):
 #                     self.__set_size__(size, dim, data)
 #                     data = self.__lift__(data, edge_index,
 #                                          j if arg[-2:] == '_j' else i)
