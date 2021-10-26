@@ -189,7 +189,7 @@ class MessagePassing(torch.nn.Module):
 #                 res = hook(self, (aggr_kwargs, ))
 #                 if res is not None:
 #                     aggr_kwargs = res[0] if isinstance(res, tuple) else res
-            out = self.aggregate(out, **aggr_kwargs)
+            out, sum_out = self.aggregate(out, **aggr_kwargs)
 #             for hook in self._aggregate_forward_hooks.values():
 #                 res = hook(self, (aggr_kwargs, ), out)
 #                 if res is not None:
@@ -203,7 +203,7 @@ class MessagePassing(torch.nn.Module):
 #             if res is not None:
 #                 out = res
 
-        return out
+        return out, sum_out
 
     def message(self, x_j: Tensor) -> Tensor:
         return x_j
@@ -213,7 +213,7 @@ class MessagePassing(torch.nn.Module):
                   ptr: Optional[Tensor] = None,
                   dim_size: Optional[int] = None) -> Tensor:
         
-        return self.scatter_element_product(inputs, index, dim=self.node_dim, dim_size=dim_size)
+        return self.scatter_element_product(inputs, index, dim=self.node_dim, dim_size=dim_size),self.scatter_sum_product(inputs, index, dim=self.node_dim, dim_size=dim_size)
 
     def update(self, inputs: Tensor) -> Tensor:
         return inputs
@@ -284,8 +284,10 @@ class GCNConv(MessagePassing):
         deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
 
         norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
+        
+        prod_agg, sum_agg = self.propagate(edge_index, x=x, edge_attr = edge_embedding, norm=norm)
 
-        return self.propagate(edge_index, x=x, edge_attr = edge_embedding, norm=norm) + F.relu(x + self.root_emb.weight) * 1./deg.view(-1,1)
+        return prod_agg+sum_agg + F.relu(x + self.root_emb.weight) * 1./deg.view(-1,1)
 
     def message(self, x_j, edge_attr, norm):
         return norm.view(-1, 1) * F.relu(x_j + edge_attr)
