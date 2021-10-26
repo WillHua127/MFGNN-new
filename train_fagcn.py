@@ -240,7 +240,7 @@ class MessagePassing(torch.nn.Module):
     def scatter_element_product(self, src: torch.Tensor, index: torch.Tensor, dim: int = -1,
             out: Optional[torch.Tensor] = None, dim_size: Optional[int] = None) -> torch.Tensor:
     
-        #index = broadcast(index, src, dim)
+        index = broadcast(index, src, dim)
         size = list(src.size())
         if dim_size is not None:
             size[dim] = dim_size
@@ -257,9 +257,9 @@ class MessagePassing(torch.nn.Module):
         #            out[replace_idx][j] = out[replace_idx][j]+src[i][j]
         #        elif dim == -1:
         #            out[i][replace_index] = out[i][replace_index]+src[i][j]
-        for i in range(out.shape[0]):
-            out[i]=torch.sum(src[index==i], dim=0)
-        return out
+        #for i in range(out.shape[0]):
+        #    out[i]=torch.sum(src[index==i], dim=0)
+        return out.scatter_(dim, index, src, reduce='add')
     
     
 class GCNConv(MessagePassing):
