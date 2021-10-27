@@ -348,7 +348,7 @@ class GCNConv(MessagePassing):
 #     def message(self, x_j, edge_attr, norm):
 #         return norm.view(-1, 1) * F.relu(x_j + edge_attr)
     def message(self, x_j, edge_attr):
-        return edge_attr.view(-1, 1) * x_j
+        return edge_attr.view(-1, ) * x_j
 
     def update(self, aggr_out):
         return aggr_out
