@@ -40,6 +40,9 @@ from torch_geometric.nn.conv.utils.helpers import expand_left
 from torch_geometric.nn.conv.utils.jit import class_from_module_repr
 from torch_geometric.nn.conv.utils.typing import (sanitize, split_types_repr, parse_types, resolve_types)
 from torch_geometric.nn.conv.utils.inspector import Inspector, func_header_repr, func_body_repr
+from torch_geometric.utils.num_nodes import maybe_num_nodes
+from torch_scatter import scatter_add
+
 
 train_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split='train')
 val_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split='val')
@@ -192,8 +195,10 @@ class MessagePassing(torch.nn.Module):
 #                 if res is not None:
 #                     msg_kwargs = res[0] if isinstance(res, tuple) else res
             #x_sum = self.message_simple(x_sum)
-            x_sum = self.message(x_sum, edge_attr, norm)
-            x_prod = self.message(x_prod, edge_attr, norm)
+#             x_sum = self.message(x_sum, edge_attr, norm)
+#             x_prod = self.message(x_prod, edge_attr, norm)
+             x_sum = self.message(x_sum, edge_attr)
+             x_prod = self.message(x_prod, edge_attr)
 #             for hook in self._message_forward_hooks.values():
 #                 res = hook(self, (msg_kwargs, ), out)
 #                 if res is not None:
@@ -294,27 +299,56 @@ class GCNConv(MessagePassing):
         self.w1.reset_parameters()
         self.w2.reset_parameters()
         self.v.reset_parameters()
+        
+    def gcn_norm(self,edge_index, edge_weight=None, num_nodes=None, dtype=None):
+
+        if isinstance(edge_index, SparseTensor):
+            adj_t = edge_index
+            if not adj_t.has_value():
+                adj_t = adj_t.fill_value(1., dtype=dtype)
+            deg = sparsesum(adj_t, dim=1)
+            deg_inv_sqrt = deg.pow_(-0.5)
+            deg_inv_sqrt.masked_fill_(deg_inv_sqrt == float('inf'), 0.)
+            adj_t = mul(adj_t, deg_inv_sqrt.view(-1, 1))
+            adj_t = mul(adj_t, deg_inv_sqrt.view(1, -1))
+            return adj_t
+
+        else:
+            num_nodes = maybe_num_nodes(edge_index, num_nodes)
+
+            if edge_weight is None:
+                edge_weight = torch.ones((edge_index.size(1), ), dtype=dtype,
+                                         device=edge_index.device)
+
+
+            row, col = edge_index[0], edge_index[1]
+            deg = scatter_add(edge_weight, col, dim=0, dim_size=num_nodes)
+            deg_inv_sqrt = deg.pow_(-0.5)
+            deg_inv_sqrt.masked_fill_(deg_inv_sqrt == float('inf'), 0)
+            return edge_index, deg_inv_sqrt[row] * edge_weight * deg_inv_sqrt[col]
 
     def forward(self, x, edge_index, edge_attr):
         x_sum, x_prod = self.w1(x),self.w2(x)
         #x_prod = self.w2(x)
-        edge_embedding = edge_attr#self.bond_encoder(edge_attr.squeeze())
+#         edge_embedding = edge_attr#self.bond_encoder(edge_attr.squeeze())
 
-        row, col = edge_index
+#         row, col = edge_index
 
-        #edge_weight = torch.ones((edge_index.size(1), ), device=edge_index.device)
-        deg = degree(row, x.size(0), dtype = x.dtype) + 1
-        deg_inv_sqrt = deg.pow(-0.5)
-        deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
+#         #edge_weight = torch.ones((edge_index.size(1), ), device=edge_index.device)
+#         deg = degree(row, x.size(0), dtype = x.dtype) + 1
+#         deg_inv_sqrt = deg.pow(-0.5)
+#         deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
 
-        norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
-        
+#         norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
+        edge_index, edge_attr = self.gcn_norm(edge_index,edge_weight=edge_attr)
         sum_agg, prod_agg = self.propagate(edge_index, x=(x_sum,x_prod), edge_attr = edge_embedding, norm=norm)
 
         return self.v(prod_agg)+sum_agg + F.relu(x + self.root_emb.weight) * 1./deg.view(-1,1)
 
-    def message(self, x_j, edge_attr, norm):
-        return norm.view(-1, 1) * F.relu(x_j + edge_attr)
+#     def message(self, x_j, edge_attr, norm):
+#         return norm.view(-1, 1) * F.relu(x_j + edge_attr)
+    def message(self, x_j, edge_attr):
+        return edge_attr.view(-1, 1) * x_j
 
     def update(self, aggr_out):
         return aggr_out
