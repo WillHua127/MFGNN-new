@@ -398,7 +398,7 @@ if __name__ == '__main__':
     args = argparser.parse_args()
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = Net(emb_dim = args.emb
+    model = Net(emb_dim = args.emb,
                  hidden_dim = args.hidden,
                  rank_dim=args.rank,
                  n_layers=args.layers,
