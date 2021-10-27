@@ -388,10 +388,6 @@ def test(model, loader, device):
 
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser("multi-gpu training")
-    argparser.add_argument('--no-cuda', action='store_true', default=False,
-                    help='Disables CUDA training.')
-    argparser.add_argument('--gpu', type=int, default=0,
-        help="GPU device ID. Use -1 for CPU training")
     argparser.add_argument('--epochs', type=int, default=300)
     argparser.add_argument('--hidden', type=int, default=75)
     argparser.add_argument('--emb', type=int, default=75)
