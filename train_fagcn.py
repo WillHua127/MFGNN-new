@@ -13,6 +13,7 @@ from torch_geometric.nn import BatchNorm, global_add_pool#, GCNConv
 #from ogb.graphproppred.mol_encoder import AtomEncoder,BondEncoder
 from tqdm import tqdm
 #from torch_geometric.nn import MessagePassing
+import argparse
 
 
 from typing import List, Optional, Set, Callable, get_type_hints
@@ -319,23 +320,28 @@ class GCNConv(MessagePassing):
         return aggr_out
 
 class Net(torch.nn.Module):
-    def __init__(self):
+    def __init__(self,
+                 emb_dim
+                 hidden_dim,
+                 rank_dim,
+                 n_layers,
+                 dropout):
         super(Net, self).__init__()
 
-        self.node_emb = Embedding(21, 75)
-        self.edge_emb = Embedding(4, 75)
+        self.node_emb = Embedding(21, emb_dim)
+        self.edge_emb = Embedding(4, emb_dim)
 
         aggregators = ['mean', 'min', 'max', 'std']
         scalers = ['identity', 'amplification', 'attenuation']
 
         self.convs = ModuleList()
         self.batch_norms = ModuleList()
-        for _ in range(4):
+        for _ in range(n_layers):
             #conv = PNAConv(in_channels=75, out_channels=75,
             #               aggregators=aggregators, scalers=scalers, deg=deg,
             #               edge_dim=50, towers=5, pre_layers=1, post_layers=1,
             #               divide_input=False)
-            conv = GCNConv(emb_dim=75)
+            conv = GCNConv(emb_dim=emb_dim)
             self.convs.append(conv)
             self.batch_norms.append(BatchNorm(75))
 
@@ -380,19 +386,34 @@ def test(model, loader, device):
     return total_error / len(loader.dataset)
 
 
-
-lrs = [0.01, 0.05, 0.001, 0.005, 0.03, 0.003, 0.0005, 0.0001]
-for lr in lrs:
-    print('LR:',lr)
+if __name__ == '__main__':
+    argparser = argparse.ArgumentParser("multi-gpu training")
+    argparser.add_argument('--no-cuda', action='store_true', default=False,
+                    help='Disables CUDA training.')
+    argparser.add_argument('--gpu', type=int, default=0,
+        help="GPU device ID. Use -1 for CPU training")
+    argparser.add_argument('--epochs', type=int, default=300)
+    argparser.add_argument('--hidden', type=int, default=75)
+    argparser.add_argument('--emb', type=int, default=75)
+    argparser.add_argument('--layers', type=int, default=2)
+    argparser.add_argument('--lr', type=float, default=0.001)
+    argparser.add_argument('--dropout', type=float, default=0.0)
+    argparser.add_argument('--rank', type=int, default=75)
+    args = argparser.parse_args()
+    
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = Net().to(device)
+    model = Net(emb_dim = args.emb
+                 hidden_dim = args.hidden,
+                 rank_dim=args.rank,
+                 n_layers=args.layers,
+                 dropout=args.dropout).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=20,
                                   min_lr=0.00001)
 
     best_eval = 1000000
     best_test = 1000000
-    for epoch in range(1, 2001):
+    for epoch in range(1, args.epochs):
         loss = train(model, epoch, device)
         val_mae = test(model, val_loader, device)
         test_mae = test(model, test_loader, device)
