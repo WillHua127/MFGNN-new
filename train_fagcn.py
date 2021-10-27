@@ -197,8 +197,8 @@ class MessagePassing(torch.nn.Module):
             #x_sum = self.message_simple(x_sum)
 #             x_sum = self.message(x_sum, edge_attr, norm)
 #             x_prod = self.message(x_prod, edge_attr, norm)
-             x_sum = self.message(x_sum, edge_attr)
-             x_prod = self.message(x_prod, edge_attr)
+            x_sum = self.message(x_sum, edge_attr)
+            x_prod = self.message(x_prod, edge_attr)
 #             for hook in self._message_forward_hooks.values():
 #                 res = hook(self, (msg_kwargs, ), out)
 #                 if res is not None:
