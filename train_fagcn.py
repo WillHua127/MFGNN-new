@@ -403,7 +403,7 @@ if __name__ == '__main__':
                  rank_dim=args.rank,
                  n_layers=args.layers,
                  dropout=args.dropout).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=20,
                                   min_lr=0.00001)
 
