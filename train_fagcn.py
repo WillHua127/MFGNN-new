@@ -283,10 +283,10 @@ class GCNConv(MessagePassing):
     def __init__(self, emb_dim, hidden_dim, rank_dim):
         super(GCNConv, self).__init__(aggr='add')
 
-        self.w1 = torch.nn.Linear(emb_dim, rank_dim)
-        self.w2 = torch.nn.Linear(emb_dim, hidden_dim)
-        self.v = torch.nn.Linear(hidden_dim, rank_dim)
-        self.root_emb = torch.nn.Embedding(1, rank_dim)
+        self.w1 = torch.nn.Linear(emb_dim, hidden_dim)
+        self.w2 = torch.nn.Linear(emb_dim, rank_dim)
+        self.v = torch.nn.Linear(hidden_dim, hidden_dim)
+        self.root_emb = torch.nn.Embedding(1, hidden_dim)
         #self.bond_encoder = BondEncoder(emb_dim = emb_dim)
         self.reset_parameters()
         
@@ -345,9 +345,9 @@ class Net(torch.nn.Module):
             #               divide_input=False)
             conv = GCNConv(emb_dim=emb_dim, hidden_dim=hidden_dim, rank_dim=rank_dim)
             self.convs.append(conv)
-            self.batch_norms.append(BatchNorm(75))
+            self.batch_norms.append(BatchNorm(hidden_dim))
 
-        self.mlp = Sequential(Linear(75, 50), ReLU(), Linear(50, 25), ReLU(),
+        self.mlp = Sequential(Linear(hidden_dim, 50), ReLU(), Linear(50, 25), ReLU(),
                               Linear(25, 1))
 
     def forward(self, x, edge_index, edge_attr, batch):
@@ -356,10 +356,10 @@ class Net(torch.nn.Module):
 
         for layer in range(self.n_layers):
             if layer == self.n_layers - 1:
-                x = F.relu(batch_norm[layer](conv[layer](x, edge_index, edge_attr)))
+                x = F.relu(self.batch_norm[layer](self.conv[layer](x, edge_index, edge_attr)))
             else:
                 #x = F.relu(batch_norm[layer](conv[layer](x, edge_index, edge_attr)))
-                x = F.dropout(F.relu(batch_norm[layer](conv[layer](x, edge_index, edge_attr))), self.dropout, training = self.training)
+                x = F.dropout(F.relu(self.batch_norm[layer](self.conv[layer](x, edge_index, edge_attr))), self.dropout, training = self.training)
 
         #for conv, batch_norm in zip(self.convs, self.batch_norms):
         #    x = F.relu(batch_norm(conv(x, edge_index, edge_attr)))
