@@ -321,7 +321,7 @@ class GCNConv(MessagePassing):
 
 class Net(torch.nn.Module):
     def __init__(self,
-                 emb_dim
+                 emb_dim,
                  hidden_dim,
                  rank_dim,
                  n_layers,
@@ -391,7 +391,7 @@ if __name__ == '__main__':
     argparser.add_argument('--epochs', type=int, default=300)
     argparser.add_argument('--hidden', type=int, default=75)
     argparser.add_argument('--emb', type=int, default=75)
-    argparser.add_argument('--layers', type=int, default=2)
+    argparser.add_argument('--layers', type=int, default=4)
     argparser.add_argument('--lr', type=float, default=0.001)
     argparser.add_argument('--dropout', type=float, default=0.0)
     argparser.add_argument('--rank', type=int, default=75)
