@@ -91,7 +91,7 @@ class MessagePassing(torch.nn.Module):
             x_sum,x_prod = self.__collect__(edge_index, size, x)
             x_sum = self.message(x_sum, edge_attr, norm)
             x_prod = self.message(x_prod, edge_attr, norm)
-            x_sum, x_prod = self.aggregate((x_sum, x_prod), edge_index[1],ptr=None)
+            x_sum, x_prod = self.aggregate((x_sum, x_prod), edge_index[1],ptr=None, dim_size=x[0].shape[0])
         return x_sum, x_prod
 
     def message_simple(self, x_j: Tensor) -> Tensor:
@@ -101,8 +101,7 @@ class MessagePassing(torch.nn.Module):
     def aggregate(self, inputs: Tensor, index: Tensor,
                   ptr: Optional[Tensor] = None,
                   dim_size: Optional[int] = None) -> Tensor:
-        
-        return self.scatter_sum(inputs[0], index, dim=self.node_dim),self.scatter_product(inputs[1], index, dim=self.node_dim)
+        return self.scatter_sum(inputs[0], index, dim=self.node_dim, dim_size=dim_size),self.scatter_product(inputs[1], index, dim=self.node_dim,dim_size=dim_size)
 
     def update(self, inputs: Tensor) -> Tensor:
         return inputs
@@ -149,7 +148,7 @@ class GCNConv(MessagePassing):
         self.w1 = torch.nn.Linear(emb_dim, emb_dim)
         self.w2 = torch.nn.Linear(emb_dim, emb_dim)
         self.v = torch.nn.Linear(emb_dim, emb_dim)
-        #self.root_emb = torch.nn.Embedding(1, emb_dim)
+        self.root_emb = torch.nn.Embedding(1, emb_dim)
         self.bond_encoder = BondEncoder(emb_dim = emb_dim)
         self.reset_parameters()
         
@@ -158,17 +157,23 @@ class GCNConv(MessagePassing):
         self.w2.reset_parameters()
         self.v.reset_parameters()
         
-    def gcn_norm(self,edge_index, edge_weight=None, num_nodes=None, dtype=None):
+    def gcn_norm(self,edge_index, edge_weight=None, num_nodes=None, dtype=None, add_self_loops=True):
         num_nodes = maybe_num_nodes(edge_index, num_nodes)
 
         if edge_weight is None:
             edge_weight = torch.ones((edge_index.size(1), ), dtype=dtype,
                                      device=edge_index.device)
 
+        if add_self_loops:
+            edge_index, tmp_edge_weight = add_remaining_self_loops(
+                edge_index, edge_weight, fill_value=1, num_nodes=num_nodes)
+            assert tmp_edge_weight is not None
+            edge_weight = tmp_edge_weight
+
 
         row, col = edge_index[0], edge_index[1]
-        deg = scatter_add(edge_weight, col, dim=0, dim_size=num_nodes).float()
-        deg_inv_sqrt = deg.pow_(-0.5)
+        deg = degree(col, x.size(0), dtype = x.dtype)
+        deg_inv_sqrt = deg.pow(-0.5)
         deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
         return deg_inv_sqrt[row]  * deg_inv_sqrt[col]
 
@@ -179,7 +184,7 @@ class GCNConv(MessagePassing):
 
         row, col = edge_index
 
-        deg = degree(row, x.size(0), dtype = x.dtype) + 1
+        deg = degree(col, x.size(0), dtype = x.dtype)
         deg_inv_sqrt = deg.pow(-0.5)
         deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
 
@@ -188,7 +193,7 @@ class GCNConv(MessagePassing):
 
         sum_agg, prod_agg = self.propagate(edge_index, x=(x_sum,x_prod), edge_attr = edge_embedding, norm=norm)
 
-        return self.v(prod_agg)+sum_agg# + F.relu(x + self.root_emb.weight) * 1./deg.view(-1,1)
+        return self.v(prod_agg)+sum_agg#+ F.relu6(x + self.root_emb.weight) * 1./deg.view(-1,1)
 
     def message(self, x_j, edge_attr, norm):
         return norm.view(-1, 1) * F.relu(x_j + edge_attr)
