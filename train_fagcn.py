@@ -356,10 +356,10 @@ class Net(torch.nn.Module):
 
         for layer in range(self.n_layers):
             if layer == self.n_layers - 1:
-                x = F.relu(self.batch_norm[layer](self.conv[layer](x, edge_index, edge_attr)))
+                x = F.relu(self.batch_norms[layer](self.convs[layer](x, edge_index, edge_attr)))
             else:
                 #x = F.relu(batch_norm[layer](conv[layer](x, edge_index, edge_attr)))
-                x = F.dropout(F.relu(self.batch_norm[layer](self.conv[layer](x, edge_index, edge_attr))), self.dropout, training = self.training)
+                x = F.dropout(F.relu(self.batch_norms[layer](self.convs[layer](x, edge_index, edge_attr))), self.dropout, training = self.training)
 
         #for conv, batch_norm in zip(self.convs, self.batch_norms):
         #    x = F.relu(batch_norm(conv(x, edge_index, edge_attr)))
