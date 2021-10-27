@@ -195,10 +195,10 @@ class MessagePassing(torch.nn.Module):
 #                 if res is not None:
 #                     msg_kwargs = res[0] if isinstance(res, tuple) else res
             #x_sum = self.message_simple(x_sum)
-#             x_sum = self.message(x_sum, edge_attr, norm)
-#             x_prod = self.message(x_prod, edge_attr, norm)
-            x_sum = self.message(x_sum, edge_attr)
-            x_prod = self.message(x_prod, edge_attr)
+            x_sum = self.message(x_sum, edge_attr, norm)
+            x_prod = self.message(x_prod, edge_attr, norm)
+#             x_sum = self.message(x_sum, edge_attr)
+#             x_prod = self.message(x_prod, edge_attr)
 #             for hook in self._message_forward_hooks.values():
 #                 res = hook(self, (msg_kwargs, ), out)
 #                 if res is not None:
@@ -330,25 +330,25 @@ class GCNConv(MessagePassing):
     def forward(self, x, edge_index, edge_attr):
         x_sum, x_prod = self.w1(x),self.w2(x)
         #x_prod = self.w2(x)
-#         edge_embedding = edge_attr#self.bond_encoder(edge_attr.squeeze())
+        edge_embedding = edge_attr#self.bond_encoder(edge_attr.squeeze())
 
-#         row, col = edge_index
+        row, col = edge_index
 
-#         #edge_weight = torch.ones((edge_index.size(1), ), device=edge_index.device)
-#         deg = degree(row, x.size(0), dtype = x.dtype) + 1
-#         deg_inv_sqrt = deg.pow(-0.5)
-#         deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
+        #edge_weight = torch.ones((edge_index.size(1), ), device=edge_index.device)
+        deg = degree(row, x.size(0), dtype = x.dtype) + 1
+        deg_inv_sqrt = deg.pow(-0.5)
+        deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
 
-#         norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
-        edge_index, edge_attr = self.gcn_norm(edge_index,edge_weight=edge_attr)
-        sum_agg, prod_agg = self.propagate(edge_index, x=(x_sum,x_prod), edge_attr = edge_attr, norm=edge_attr)
+        norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
+        #edge_index, edge_attr = self.gcn_norm(edge_index,edge_weight=edge_attr)
+        sum_agg, prod_agg = self.propagate(edge_index, x=(x_sum,x_prod), edge_attr = edge_attr, norm=norm)
 
         return self.v(prod_agg)+sum_agg + F.relu(x + self.root_emb.weight) * 1./deg.view(-1,1)
 
-#     def message(self, x_j, edge_attr, norm):
-#         return norm.view(-1, 1) * F.relu(x_j + edge_attr)
-    def message(self, x_j, edge_attr):
-        return edge_attr.view(-1, ) * x_j
+    def message(self, x_j, edge_attr, norm):
+        return norm.view(-1, 1) * F.relu(x_j + edge_attr)
+#    def message(self, x_j, edge_attr):
+#        return edge_attr.view(-1, ) * x_j
 
     def update(self, aggr_out):
         return aggr_out
