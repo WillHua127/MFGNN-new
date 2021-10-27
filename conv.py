@@ -17,7 +17,7 @@ from ogb.graphproppred.mol_encoder import BondEncoder
 class MessagePassing(torch.nn.Module):
 
     def __init__(self, aggr: Optional[str] = "add",
-                 flow: str = "target_to_source", node_dim: int = -2):
+                 flow: str = "source_to_target", node_dim: int = -2):
 
         super(MessagePassing, self).__init__()
 
@@ -149,7 +149,7 @@ class GCNConv(MessagePassing):
         self.w1 = torch.nn.Linear(emb_dim, emb_dim)
         self.w2 = torch.nn.Linear(emb_dim, emb_dim)
         self.v = torch.nn.Linear(emb_dim, emb_dim)
-        self.root_emb = torch.nn.Embedding(1, emb_dim)
+        #self.root_emb = torch.nn.Embedding(1, emb_dim)
         self.bond_encoder = BondEncoder(emb_dim = emb_dim)
         self.reset_parameters()
         
@@ -179,7 +179,7 @@ class GCNConv(MessagePassing):
 
         row, col = edge_index
 
-        deg = degree(row, x.size(0), dtype = x.dtype)
+        deg = degree(row, x.size(0), dtype = x.dtype) + 1
         deg_inv_sqrt = deg.pow(-0.5)
         deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
 
@@ -188,7 +188,7 @@ class GCNConv(MessagePassing):
 
         sum_agg, prod_agg = self.propagate(edge_index, x=(x_sum,x_prod), edge_attr = edge_embedding, norm=norm)
 
-        return self.v(prod_agg)+sum_agg + F.relu(x + self.root_emb.weight) * 1./deg.view(-1,1)
+        return self.v(prod_agg)+sum_agg# + F.relu(x + self.root_emb.weight) * 1./deg.view(-1,1)
 
     def message(self, x_j, edge_attr, norm):
         return norm.view(-1, 1) * F.relu(x_j + edge_attr)
