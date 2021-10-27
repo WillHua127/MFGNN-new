@@ -110,7 +110,6 @@ class GNN(torch.nn.Module):
 
     def forward(self, batched_data):
         h_node = self.gnn_node(batched_data)
-
         h_graph = self.pool(h_node, batched_data.batch)
 
         return self.graph_pred_linear(h_graph)
@@ -171,11 +170,11 @@ def main():
     parser = argparse.ArgumentParser(description='GNN baselines on ogbgmol* data with Pytorch Geometrics')
     parser.add_argument('--device', type=int, default=0,
                         help='which gpu to use if any (default: 0)')
-    parser.add_argument('--dropout', type=float, default=0.5,
+    parser.add_argument('--dropout', type=float, default=0.0,
                         help='dropout ratio (default: 0.5)')
-    parser.add_argument('--layer', type=int, default=5,
+    parser.add_argument('--layer', type=int, default=2,
                         help='number of GNN message passing layers (default: 5)')
-    parser.add_argument('--emb_dim', type=int, default=512,
+    parser.add_argument('--emb_dim', type=int, default=10,
                         help='dimensionality of hidden units in GNNs (default: 300)')
     parser.add_argument('--batch_size', type=int, default=1000,
                         help='input batch size for training (default: 32)')
