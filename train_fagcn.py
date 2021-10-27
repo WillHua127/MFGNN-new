@@ -383,7 +383,7 @@ def test(model, loader, device):
 
 lrs = [0.01, 0.05, 0.001, 0.005, 0.03, 0.003, 0.0005, 0.0001]
 for lr in lrs:
-    print('LR':lr)
+    print('LR:',lr)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = Net().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
