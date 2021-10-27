@@ -280,13 +280,13 @@ class MessagePassing(torch.nn.Module):
     
     
 class GCNConv(MessagePassing):
-    def __init__(self, emb_dim):
+    def __init__(self, emb_dim, hidden_dim, rank_dim):
         super(GCNConv, self).__init__(aggr='add')
 
-        self.w1 = torch.nn.Linear(emb_dim, emb_dim)
-        self.w2 = torch.nn.Linear(emb_dim, emb_dim)
-        self.v = torch.nn.Linear(emb_dim, emb_dim)
-        self.root_emb = torch.nn.Embedding(1, emb_dim)
+        self.w1 = torch.nn.Linear(emb_dim, rank_dim)
+        self.w2 = torch.nn.Linear(emb_dim, hidden_dim)
+        self.v = torch.nn.Linear(hidden_dim, rank_dim)
+        self.root_emb = torch.nn.Embedding(1, rank_dim)
         #self.bond_encoder = BondEncoder(emb_dim = emb_dim)
         self.reset_parameters()
         
@@ -330,6 +330,8 @@ class Net(torch.nn.Module):
 
         self.node_emb = Embedding(21, emb_dim)
         self.edge_emb = Embedding(4, emb_dim)
+        self.n_layers = n_layers
+        self.dropout = dropout
 
         aggregators = ['mean', 'min', 'max', 'std']
         scalers = ['identity', 'amplification', 'attenuation']
@@ -341,7 +343,7 @@ class Net(torch.nn.Module):
             #               aggregators=aggregators, scalers=scalers, deg=deg,
             #               edge_dim=50, towers=5, pre_layers=1, post_layers=1,
             #               divide_input=False)
-            conv = GCNConv(emb_dim=emb_dim)
+            conv = GCNConv(emb_dim=emb_dim, hidden_dim=hidden_dim, rank_dim=rank_dim)
             self.convs.append(conv)
             self.batch_norms.append(BatchNorm(75))
 
@@ -352,8 +354,15 @@ class Net(torch.nn.Module):
         x = self.node_emb(x.squeeze())
         edge_attr = self.edge_emb(edge_attr)
 
-        for conv, batch_norm in zip(self.convs, self.batch_norms):
-            x = F.relu(batch_norm(conv(x, edge_index, edge_attr)))
+        for layer in range(self.n_layers):
+            if layer == self.n_layers - 1:
+                x = F.relu(batch_norm[layer](conv[layer](x, edge_index, edge_attr)))
+            else:
+                #x = F.relu(batch_norm[layer](conv[layer](x, edge_index, edge_attr)))
+                x = F.dropout(F.relu(batch_norm[layer](conv[layer](x, edge_index, edge_attr))), self.dropout, training = self.training)
+
+        #for conv, batch_norm in zip(self.convs, self.batch_norms):
+        #    x = F.relu(batch_norm(conv(x, edge_index, edge_attr)))
 
         x = global_add_pool(x, batch)
         return self.mlp(x)
