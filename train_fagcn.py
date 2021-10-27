@@ -353,7 +353,7 @@ class Net(torch.nn.Module):
         return self.mlp(x)
 
 
-def train(model, epoch):
+def train(model, epoch, device):
     model.train()
 
     total_loss = 0
@@ -369,7 +369,7 @@ def train(model, epoch):
 
 
 @torch.no_grad()
-def test(model, loader):
+def test(model, loader, device):
     model.eval()
 
     total_error = 0
@@ -392,9 +392,9 @@ for lr in lrs:
     best_eval = 1000000
     best_test = 1000000
     for epoch in range(1, 10):
-        loss = train(model, epoch)
-        val_mae = test(model, val_loader)
-        test_mae = test(model, test_loader)
+        loss = train(model, epoch, device)
+        val_mae = test(model, val_loader, device)
+        test_mae = test(model, test_loader, device)
         if val_mae < best_eval:
             best_eval = val_mae
             best_test = test_mae
