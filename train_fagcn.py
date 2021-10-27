@@ -341,7 +341,7 @@ class GCNConv(MessagePassing):
 
 #         norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
         edge_index, edge_attr = self.gcn_norm(edge_index,edge_weight=edge_attr)
-        sum_agg, prod_agg = self.propagate(edge_index, x=(x_sum,x_prod), edge_attr = edge_embedding, norm=norm)
+        sum_agg, prod_agg = self.propagate(edge_index, x=(x_sum,x_prod), edge_attr = edge_attr, norm=edge_attr)
 
         return self.v(prod_agg)+sum_agg + F.relu(x + self.root_emb.weight) * 1./deg.view(-1,1)
 
