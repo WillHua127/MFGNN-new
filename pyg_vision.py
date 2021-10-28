@@ -56,9 +56,9 @@ argparser.add_argument('--batch', type=int, default=1000)
 argparser.add_argument('--dataset', type=str, default="MNIST")
 args = argparser.parse_args()
 
-train_dataset = GNNBenchmarkDataset(osp.join('torch_geometric_data','zinc'), name=args.dataset, split='train')
-val_dataset = GNNBenchmarkDataset(osp.join('torch_geometric_data','zinc'), name=args.dataset, split='val')
-test_dataset = GNNBenchmarkDataset(osp.join('torch_geometric_data','zinc'), name=args.dataset, split='test')
+train_dataset = GNNBenchmarkDataset(osp.join('torch_geometric_data',args.dataset), name=args.dataset, split='train')
+val_dataset = GNNBenchmarkDataset(osp.join('torch_geometric_data',args.dataset), name=args.dataset, split='val')
+test_dataset = GNNBenchmarkDataset(osp.join('torch_geometric_data',args.dataset), name=args.dataset, split='test')
 n_class = train_dataset.num_classes
 print(train_dataset[0])
     
