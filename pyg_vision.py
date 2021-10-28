@@ -59,11 +59,12 @@ args = argparser.parse_args()
 train_dataset = GNNBenchmarkDataset(osp.join('torch_geometric_data','zinc'), name=args.dataset, split='train')
 val_dataset = GNNBenchmarkDataset(osp.join('torch_geometric_data','zinc'), name=args.dataset, split='val')
 test_dataset = GNNBenchmarkDataset(osp.join('torch_geometric_data','zinc'), name=args.dataset, split='test')
-
+n_class = train_dataset.num_classes
+    
 train_loader = DataLoader(train_dataset, batch_size=args.batch, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=args.batch)
 test_loader = DataLoader(test_dataset, batch_size=args.batch)
-    
+
 class MessagePassing(torch.nn.Module):
     special_args: Set[str] = {
         'edge_index', 'adj_t', 'edge_index_i', 'edge_index_j', 'size',
@@ -387,7 +388,7 @@ class Net(torch.nn.Module):
             self.batch_norms.append(BatchNorm(hidden_dim))
 
         self.mlp = Sequential(Linear(hidden_dim, 50), ReLU(), Linear(50, 25), ReLU(),
-                              Linear(25, 1))
+                              Linear(25, n_class))
 
     def forward(self, x, edge_index, edge_attr, batch):
         x = self.node_emb(x.squeeze())
