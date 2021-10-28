@@ -70,10 +70,6 @@ val_loader = DataLoader(val_dataset, batch_size=args.batch)
 test_loader = DataLoader(test_dataset, batch_size=args.batch)
     
 class MessagePassing(torch.nn.Module):
-    special_args: Set[str] = {
-        'edge_index', 'adj_t', 'edge_index_i', 'edge_index_j', 'size',
-        'size_i', 'size_j', 'ptr', 'index', 'dim_size'
-    }
 
     def __init__(self, aggr: Optional[str] = "add",
                  flow: str = "source_to_target", node_dim: int = -2):
@@ -87,14 +83,6 @@ class MessagePassing(torch.nn.Module):
         assert self.flow in ['source_to_target', 'target_to_source']
 
         self.node_dim = node_dim
-
-        self.inspector = Inspector(self)
-        self.inspector.inspect(self.message)
-        self.inspector.inspect(self.aggregate, pop_first=True)
-        self.inspector.inspect(self.update, pop_first=True)
-
-        self.__user_args__ = self.inspector.keys(
-            ['message', 'aggregate', 'update']).difference(self.special_args)
 
 
     def __check_input__(self, edge_index, size):
@@ -129,42 +117,36 @@ class MessagePassing(torch.nn.Module):
             return src.index_select(self.node_dim, index)
 
 
-    def __collect__(self, args, edge_index, size, x):
+    def __collect__(self, edge_index, size, x):
         i, j = (1, 0) if self.flow == 'source_to_target' else (0, 1)
 
-        for arg in args:
-            if arg[-2:] not in ['_i', '_j']:
+        dim = 0
+        data = x
 
-                pass
-            else:
-                dim = 0 if arg[-2:] == '_j' else 1
-                data = x
+        if isinstance(data, (tuple, list)):
+            assert len(data) == 2
+            if isinstance(data[1 - dim], Tensor):
+                self.__set_size__(size, 1 - dim, data[1 - dim])
+            #data = data[dim]
+            data_sum = data[dim]
+            data_prod = data[dim+1]
 
-                if isinstance(data, (tuple, list)):
-                    assert len(data) == 2
-                    if isinstance(data[1 - dim], Tensor):
-                        self.__set_size__(size, 1 - dim, data[1 - dim])
-                    #data = data[dim]
-                    data_sum = data[dim]
-                    data_prod = data[dim+1]
-
-                if isinstance(data_sum, Tensor) and isinstance(data_prod, Tensor):
-
-                    self.__set_size__(size, dim, data_sum)
-                    data_sum = self.__lift__(data_sum, edge_index, j if arg[-2:] == '_j' else i)
-                    data_prod = self.__lift__(data_prod, edge_index, j if arg[-2:] == '_j' else i)
-
+        #if isinstance(data, Tensor):
+        if isinstance(data_sum, Tensor) and isinstance(data_prod, Tensor):
+            self.__set_size__(size, dim, data_sum)
+            data_sum = self.__lift__(data_sum, edge_index, j)
+            data_prod = self.__lift__(data_prod, edge_index, j)
         return data_sum, data_prod
 
     def propagate(self, edge_index: Adj, x, size: Size = None, edge_attr = None, norm=None):
+
         size = self.__check_input__(edge_index, size)
 
         if isinstance(edge_index, Tensor) or not self.fuse:
-            x_sum,x_prod = self.__collect__(self.__user_args__, edge_index, size, x)
+            x_sum,x_prod = self.__collect__(edge_index, size, x)
             x_sum = self.message(x_sum, edge_attr, norm)
             x_prod = self.message(x_prod, edge_attr, norm)
-            x_sum, x_prod = self.aggregate((x_sum, x_prod), edge_index[1],ptr=None)
-
+            x_sum, x_prod = self.aggregate((x_sum, x_prod), edge_index[1],ptr=None, dim_size=x[0].shape[0])
         return x_sum, x_prod
 
     def message_simple(self, x_j: Tensor) -> Tensor:
@@ -174,8 +156,7 @@ class MessagePassing(torch.nn.Module):
     def aggregate(self, inputs: Tensor, index: Tensor,
                   ptr: Optional[Tensor] = None,
                   dim_size: Optional[int] = None) -> Tensor:
-        
-        return self.scatter_sum(inputs[0], index, dim=self.node_dim),self.scatter_product(inputs[1], index, dim=self.node_dim)
+        return self.scatter_sum(inputs[0], index, dim=self.node_dim, dim_size=dim_size),self.scatter_product(inputs[1], index, dim=self.node_dim,dim_size=dim_size)
 
     def update(self, inputs: Tensor) -> Tensor:
         return inputs
