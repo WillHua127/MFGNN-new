@@ -56,8 +56,8 @@ argparser.add_argument('--rank', type=int, default=15)
 argparser.add_argument('--batch', type=int, default=1000)
 args = argparser.parse_args()
 
-train_dataset = GNNBenchmarkDataset(osp.join('data','MNIST'),name='MNIST',split='test', transform = T.Cartesian(cat=False))
-val_dataset = GNNBenchmarkDataset(osp.join('data','MNIST'),name='MNIST',split='test', transform = T.Cartesian(cat=False))
+train_dataset = GNNBenchmarkDataset(osp.join('data','MNIST'),name='MNIST',split='train', transform = T.Cartesian(cat=False))
+val_dataset = GNNBenchmarkDataset(osp.join('data','MNIST'),name='MNIST',split='valid', transform = T.Cartesian(cat=False))
 test_dataset = GNNBenchmarkDataset(osp.join('data','MNIST'),name='MNIST',split='test', transform = T.Cartesian(cat=False))
 n_efeat = train_dataset[0].edge_attr.shape[1]
 n_nfeat = train_dataset[0].x.shape[1]
@@ -389,7 +389,7 @@ if __name__ == '__main__':
         loss = train(model, epoch, device)
         val_mae = eval(model, val_loader, device)
         test_mae = test(model, test_loader, device)
-        if val_mae < best_eval:
+        if val_mae > best_eval:
             best_eval = val_mae
             best_test = test_mae
         scheduler.step(val_mae)
