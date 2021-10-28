@@ -46,7 +46,7 @@ from torch_scatter import scatter_add
 
 argparser = argparse.ArgumentParser("multi-gpu training")
 argparser.add_argument('--epochs', type=int, default=300)
-argparser.add_argument('--hidden', type=int, default=75)
+argparser.add_argument('--hidden', type=int, default=100)
 argparser.add_argument('--emb', type=int, default=75)
 argparser.add_argument('--layers', type=int, default=4)
 argparser.add_argument('--lr', type=float, default=0.001)
@@ -294,7 +294,7 @@ class GCNConv(MessagePassing):
 
         self.w1 = torch.nn.Linear(emb_dim, hidden_dim)
         self.w2 = torch.nn.Linear(emb_dim, rank_dim)
-        self.v = torch.nn.Linear(hidden_dim, hidden_dim)
+        self.v = torch.nn.Linear(rank_dim, hidden_dim)
         self.root_emb = torch.nn.Embedding(1, hidden_dim)
         #self.bond_encoder = BondEncoder(emb_dim = emb_dim)
         self.reset_parameters()
