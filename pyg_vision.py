@@ -47,18 +47,19 @@ from torch_scatter import scatter_add
 
 argparser = argparse.ArgumentParser("multi-gpu training")
 argparser.add_argument('--epochs', type=int, default=300)
-argparser.add_argument('--hidden', type=int, default=5)
-argparser.add_argument('--emb', type=int, default=75)
+argparser.add_argument('--hidden', type=int, default=100)
+argparser.add_argument('--emb', type=int, default=100)
 argparser.add_argument('--layers', type=int, default=4)
 argparser.add_argument('--lr', type=float, default=0.001)
-argparser.add_argument('--dropout', type=float, default=0.0)
-argparser.add_argument('--rank', type=int, default=15)
+argparser.add_argument('--dropout', type=float, default=0.5)
+argparser.add_argument('--rank', type=int, default=100)
 argparser.add_argument('--batch', type=int, default=1000)
+argparser.add_argument('--dataset', type=str, default="MNIST")
 args = argparser.parse_args()
 
-train_dataset = GNNBenchmarkDataset(osp.join('data','MNIST'),name='MNIST',split='train', transform = T.Cartesian(cat=False))
-val_dataset = GNNBenchmarkDataset(osp.join('data','MNIST'),name='MNIST',split='valid', transform = T.Cartesian(cat=False))
-test_dataset = GNNBenchmarkDataset(osp.join('data','MNIST'),name='MNIST',split='test', transform = T.Cartesian(cat=False))
+train_dataset = GNNBenchmarkDataset(osp.join('data',args.dataset),name=args.dataset,split='train', transform = T.Cartesian(cat=False))
+val_dataset = GNNBenchmarkDataset(osp.join('data',args.dataset),name=args.dataset,split='val', transform = T.Cartesian(cat=False))
+test_dataset = GNNBenchmarkDataset(osp.join('data',args.dataset),name=args.dataset,split='test', transform = T.Cartesian(cat=False))
 n_efeat = train_dataset[0].edge_attr.shape[1]
 n_nfeat = train_dataset[0].x.shape[1]
 n_class = train_dataset.num_classes
