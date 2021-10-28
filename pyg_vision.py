@@ -56,6 +56,7 @@ argparser.add_argument('--rank', type=int, default=100)
 argparser.add_argument('--batch', type=int, default=1000)
 argparser.add_argument('--dataset', type=str, default="MNIST")
 args = argparser.parse_args()
+args.hidden,args.rank = args.emb,args.emb
 
 train_dataset = GNNBenchmarkDataset(osp.join('data',args.dataset),name=args.dataset,split='train', transform = T.Cartesian(cat=False))
 val_dataset = GNNBenchmarkDataset(osp.join('data',args.dataset),name=args.dataset,split='val', transform = T.Cartesian(cat=False))
