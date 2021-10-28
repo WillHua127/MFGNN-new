@@ -51,13 +51,6 @@ test_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split=
 train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=128)
 test_loader = DataLoader(test_dataset, batch_size=128)
-
-# Compute in-degree histogram over training data.
-deg = torch.zeros(5, dtype=torch.long)
-for data in train_dataset:
-    d = degree(data.edge_index[1], num_nodes=data.num_nodes, dtype=torch.long)
-    deg += torch.bincount(d, minlength=deg.numel())
-
     
 class MessagePassing(torch.nn.Module):
     special_args: Set[str] = {
