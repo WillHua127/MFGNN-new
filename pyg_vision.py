@@ -395,5 +395,5 @@ if __name__ == '__main__':
             best_eval = val_mae
             best_test = test_mae
         scheduler.step(val_mae)
-        print(f'Epoch: {epoch:02d}, Loss: {loss:.4f}, Val: {val_acc:.4f}, '
-              f'Test: {test_acc:.4f}', f'Best val: {best_eval:.4f}', f'Best test: {best_test:.4f}')
+        print(f'Epoch: {epoch:02d}, Loss: {loss:.4f}, Val: {val_mae:.4f}, '
+              f'Test: {test_mae:.4f}', f'Best val: {best_eval:.4f}', f'Best test: {best_test:.4f}')
