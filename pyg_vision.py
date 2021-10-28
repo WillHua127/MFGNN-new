@@ -7,7 +7,7 @@ from torch.nn import ModuleList, Embedding
 from torch.nn import Sequential, ReLU, Linear
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch_geometric.utils import degree
-from torch_geometric.datasets import ZINC
+from torch_geometric.datasets import GNNBenchmarkDataset
 #from torch.utils.data import DataLoader
 from torch_geometric.nn import BatchNorm, global_add_pool#, GCNConv
 #from ogb.graphproppred.mol_encoder import AtomEncoder,BondEncoder
@@ -53,11 +53,12 @@ argparser.add_argument('--lr', type=float, default=0.001)
 argparser.add_argument('--dropout', type=float, default=0.0)
 argparser.add_argument('--rank', type=int, default=75)
 argparser.add_argument('--batch', type=int, default=1000)
+argparser.add_argument('--dataset', type=str, default="MNIST")
 args = argparser.parse_args()
 
-train_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split='train')
-val_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split='val')
-test_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split='test')
+train_dataset = GNNBenchmarkDataset(osp.join('torch_geometric_data','zinc'), name=args.dataset, split='train')
+val_dataset = GNNBenchmarkDataset(osp.join('torch_geometric_data','zinc'), name=args.dataset, split='val')
+test_dataset = GNNBenchmarkDataset(osp.join('torch_geometric_data','zinc'), name=args.dataset, split='test')
 
 train_loader = DataLoader(train_dataset, batch_size=args.batch, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=args.batch)
