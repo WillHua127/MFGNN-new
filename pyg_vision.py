@@ -60,6 +60,7 @@ train_dataset = GNNBenchmarkDataset(osp.join('torch_geometric_data','zinc'), nam
 val_dataset = GNNBenchmarkDataset(osp.join('torch_geometric_data','zinc'), name=args.dataset, split='val')
 test_dataset = GNNBenchmarkDataset(osp.join('torch_geometric_data','zinc'), name=args.dataset, split='test')
 n_class = train_dataset.num_classes
+print(train_dataset[0])
     
 train_loader = DataLoader(train_dataset, batch_size=args.batch, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=args.batch)
