@@ -44,13 +44,24 @@ from torch_geometric.utils.num_nodes import maybe_num_nodes
 from torch_scatter import scatter_add
 
 
+argparser = argparse.ArgumentParser("multi-gpu training")
+argparser.add_argument('--epochs', type=int, default=300)
+argparser.add_argument('--hidden', type=int, default=75)
+argparser.add_argument('--emb', type=int, default=75)
+argparser.add_argument('--layers', type=int, default=4)
+argparser.add_argument('--lr', type=float, default=0.001)
+argparser.add_argument('--dropout', type=float, default=0.0)
+argparser.add_argument('--rank', type=int, default=75)
+argparser.add_argument('--batch', type=int, default=1000)
+args = argparser.parse_args()
+
 train_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split='train')
 val_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split='val')
 test_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split='test')
 
-train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=128)
-test_loader = DataLoader(test_dataset, batch_size=128)
+train_loader = DataLoader(train_dataset, batch_size=args.batch, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=args.batch)
+test_loader = DataLoader(test_dataset, batch_size=args.batch)
     
 class MessagePassing(torch.nn.Module):
     special_args: Set[str] = {
@@ -423,16 +434,7 @@ def test(model, loader, device):
 
 
 if __name__ == '__main__':
-    argparser = argparse.ArgumentParser("multi-gpu training")
-    argparser.add_argument('--epochs', type=int, default=300)
-    argparser.add_argument('--hidden', type=int, default=75)
-    argparser.add_argument('--emb', type=int, default=75)
-    argparser.add_argument('--layers', type=int, default=4)
-    argparser.add_argument('--lr', type=float, default=0.001)
-    argparser.add_argument('--dropout', type=float, default=0.0)
-    argparser.add_argument('--rank', type=int, default=75)
-    args = argparser.parse_args()
-    
+   
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = Net(emb_dim = args.emb,
                  hidden_dim = args.hidden,
