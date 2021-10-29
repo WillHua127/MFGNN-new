@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 
 import torch_geometric.transforms as T
-from gcn import GCNConv
+from gnn import GCNConv
 from torch_scatter import scatter
 from ogb.nodeproppred import PygNodePropPredDataset, Evaluator
 from torch_geometric.data import NeighborSampler
