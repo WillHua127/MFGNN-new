@@ -351,7 +351,8 @@ class GCNConv(MessagePassing):
         return self.v(prod_agg)+sum_agg + F.relu(x + self.root_emb.weight) * 1./deg.view(-1,1)
 
     def message(self, x_j, edge_attr, norm):
-        return norm.view(-1, 1) * F.relu(x_j + edge_attr)
+        #return norm.view(-1, 1) * F.relu(x_j + edge_attr)
+        return norm.view(-1, 1) * F.relu(x_j)
 #    def message(self, x_j, edge_attr):
 #        return edge_attr.view(-1, ) * x_j
 
