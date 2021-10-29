@@ -1,312 +1,220 @@
-from __future__ import division
-from __future__ import print_function
-
-import time
 import argparse
-import numpy as np
 
 import torch
 import torch.nn.functional as F
-import torch.optim as optim
-import matplotlib
-import itertools
 
-from utils import load_data, accuracy, full_load_data, data_split, random_disassortative_splits, rand_train_test_idx, load_graph_data, semi_supervised_splits
-from models import CPPooling, TwoCPPooling, GAT
-
-
-
-# Training settings
-parser = argparse.ArgumentParser()
-parser.add_argument('--no-cuda', action='store_true', default=False,
-                    help='Disables CUDA training.')
-parser.add_argument('--fastmode', action='store_true', default=False,
-                    help='Validate during training pass.')
-parser.add_argument('--seed', type=int, default=42, help='Random seed.')
-parser.add_argument('--epochs', type=int, default=5000,
-                    help='Number of epochs to train.')
-parser.add_argument('--lr', type=float, default=0.05,
-                    help='Initial learning rate.')
-parser.add_argument('--weight_decay', type=float, default=5e-5,
-                    help='Weight decay (L2 loss on parameters).')
-parser.add_argument('--hidden', type=int, default=64,
-                    help='Number of hidden units.')
-parser.add_argument('--idx', type=int, default=0,
-                    help='Split number.')
-parser.add_argument('--dataset_name', type=str,
-                    help='Dataset name.', default = 'film')
-parser.add_argument('--model', type=str,
-                    help='model.', default = 'one')
-parser.add_argument("--heads", type=int, default=8,
-                    help="number of hidden attention heads")
-parser.add_argument("--out_heads", type=int, default=1,
-                    help="number of output attention heads")
-parser.add_argument("--layers", type=int, default=2,
-                    help="number of hidden layers")
-parser.add_argument('--sub_dataname', type=str,
-                    help='subdata name.', default = 'DE')
-parser.add_argument('--dropout', type=float, default=0.1,
-                    help='Dropout rate (1 - keep probability).')
-parser.add_argument('--task', type=str,
-                    help='semi-supervised learning or supervised learning.', default = 'sl')
+import torch_geometric.transforms as T
+from gcn import GCNConv
+from torch_scatter import scatter
+from ogb.nodeproppred import PygNodePropPredDataset, Evaluator
+from torch_geometric.data import NeighborSampler
+from tqdm import tqdm
 
 
+
+parser = argparse.ArgumentParser(description='OGBN-Products (GNN)')
+parser.add_argument('--device', type=int, default=0)
+parser.add_argument('--log_steps', type=int, default=1)
+parser.add_argument('--use_sage', action='store_true')
+parser.add_argument('--num_layers', type=int, default=3)
+parser.add_argument('--batch_train', type=int, default=512)
+parser.add_argument('--batch_test', type=int, default=10000)
+parser.add_argument('--num_workers', type=int, default=0)
+parser.add_argument('--hidden_channels', type=int, default=5)
+parser.add_argument('--dropout', type=float, default=0.5)
+parser.add_argument('--lr', type=float, default=0.01)
+parser.add_argument('--epochs', type=int, default=300)
+parser.add_argument('--runs', type=int, default=10)
+parser.add_argument('--dataset', type=str, help='Dataset name.', default = 'proteins')
 args = parser.parse_args()
-args.cuda = not args.no_cuda and torch.cuda.is_available()
+print(args)
 
-np.random.seed(args.seed)
-torch.manual_seed(args.seed)
-if args.cuda:
-    torch.cuda.manual_seed(args.seed)
+device = f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu'
+device = torch.device(device)
+
+dataset = PygNodePropPredDataset(name = "ogbn-"+args.dataset, root = 'torch_geometric_data/')#, transform=T.ToSparseTensor())
+#dataset = PygNodePropPredDataset(name='ogbn-products',
+#                                 transform=T.ToSparseTensor())
+data = dataset[0]
+
+split_idx = dataset.get_idx_split()
+train_idx = split_idx['train']
+
+data.x = scatter(data.edge_attr, data.edge_index[0], dim=0, dim_size=data.num_nodes, reduce='mean')
+#data.adj_t.set_value_(None)
+
+
+train_loader = NeighborSampler(data.edge_index, node_idx=train_idx,
+                           sizes=[10, 10, 10], batch_size=args.batch_train,
+                           shuffle=True, num_workers=args.num_workers)
+subgraph_loader = NeighborSampler(data.edge_index, node_idx=None, sizes=[-1],
+                                  batch_size=args.batch_test, shuffle=False,
+                                  num_workers=args.num_workers)
+
+train_idx = train_idx.to(device)
+
+evaluator = Evaluator(name='ogbn-'+args.dataset)
+
     
+class GCN(torch.nn.Module):
+    def __init__(self, in_channels, hidden_channels, out_channels, num_layers,
+                 dropout):
+        super(GCN, self).__init__()
+        self.num_layers = num_layers
 
-# Load data
-#edge_dict, features, labels, edge_index = full_load_data(args.dataset_name, args.sub_dataname)
-g,n_classes = load_graph_data(args.dataset_name)
-labels = g.ndata.pop('labels')
-features = g.ndata.pop('features')
-norm = g.ndata.pop('norm')
-heads = ([args.heads] * args.layers) + [args.out_heads]
+        self.convs = torch.nn.ModuleList()
+        self.convs.append(
+            GCNConv(in_channels, hidden_channels))
+        for _ in range(num_layers - 2):
+            self.convs.append(
+                GCNConv(hidden_channels, hidden_channels))
+        self.convs.append(
+            GCNConv(hidden_channels, out_channels))
+
+        self.dropout = dropout
+
+    def reset_parameters(self):
+        for conv in self.convs:
+            conv.reset_parameters()
+
+    def forward(self, x, adjs):
+        for i, (edge_index, _, size) in enumerate(adjs):
+            x_target = x[:size[1]]  # Target nodes are always placed first.
+            x = self.convs[i]((x, x_target), edge_index)
+            if i != self.num_layers - 1:
+                x = F.relu(x)
+                x = F.dropout(x, p=self.dropout, training=self.training)
+#         for conv in self.convs[:-1]:
+#             x = conv(x, edge_index, edge_attr)
+#             x = F.relu(x)
+#             x = F.dropout(x, p=self.dropout, training=self.training)
+#         x = self.convs[-1](x, edge_index, edge_attr)
+        return x
     
-num_class = labels.max()+1
-
-if args.cuda:
-    features = features.cuda()
-    #adj = adj.cuda()
-    labels = labels.cuda()
-    norm = norm.cuda()
-    #idx_train = idx_train.cuda()
-    #idx_val = idx_val.cuda()
-    #idx_test = idx_test.cuda()
-
     
-def test_sgcnh(model, idx_train, idx_val, idx_test):
+    def inference(self, x_all):
+        pbar = tqdm(total=x_all.size(0) * self.num_layers)
+        pbar.set_description('Evaluating')
+
+        total_edges = 0
+        for i in range(self.num_layers):
+            xs = []
+            for batch_size, n_id, adj in subgraph_loader:
+                edge_index, _, size = adj.to(device)
+                total_edges += edge_index.size(1)
+                x = x_all[n_id].to(device)
+                x_target = x[:size[1]]
+                x = self.convs[i]((x, x_target), edge_index)
+                if i != self.num_layers - 1:
+                    x = F.relu(x)
+                xs.append(x.cpu())
+
+                pbar.update(batch_size)
+
+            x_all = torch.cat(xs, dim=0)
+
+        pbar.close()
+
+        return x_all
+
+
+class SAGE(torch.nn.Module):
+    def __init__(self, in_channels, hidden_channels, out_channels, num_layers,
+                 dropout):
+        super(SAGE, self).__init__()
+
+        self.convs = torch.nn.ModuleList()
+        self.convs.append(SAGEConv(in_channels, hidden_channels))
+        for _ in range(num_layers - 2):
+            self.convs.append(SAGEConv(hidden_channels, hidden_channels))
+        self.convs.append(SAGEConv(hidden_channels, out_channels))
+
+        self.dropout = dropout
+
+    def reset_parameters(self):
+        for conv in self.convs:
+            conv.reset_parameters()
+
+    def forward(self, x, adj_t):
+        for conv in self.convs[:-1]:
+            x = conv(x, adj_t)
+            x = F.relu(x)
+            x = F.dropout(x, p=self.dropout, training=self.training)
+        x = self.convs[-1](x, adj_t)
+        return x
+
+
+def train(model, epoch, optimizer):
+    model.train()
+    criterion = torch.nn.BCEWithLogitsLoss()
+    
+    pbar = tqdm(total=train_idx.size(0))
+    pbar.set_description(f'Epoch {epoch:02d}')
+    total_loss = 0
+    for batch_size, n_id, adjs in train_loader:
+        adjs = [adj.to(device) for adj in adjs]
+        optimizer.zero_grad()
+        out = model(data.x[n_id], adjs)
+        
+        loss = criterion(out, data.y[n_id[:batch_size]].to(torch.float))
+        loss.backward()
+        optimizer.step()
+        total_loss += float(loss)
+        pbar.update(batch_size)
+        
+    pbar.close()
+    loss = total_loss / len(train_loader)
+#     optimizer.zero_grad()
+#     out = model(data.x, data.edge_index, data.edge_attr)[train_idx]
+#     loss = criterion(out, data.y[train_idx].to(torch.float))
+#     loss.backward()
+#     optimizer.step()
+
+    return loss
+
+
+@torch.no_grad()
+def test(model):
     model.eval()
-    output = model(g, features)
-    pred = torch.argmax(F.softmax(output,dim=1) , dim=1)
-    pred = F.one_hot(pred).float()
-    output = F.log_softmax(output, dim=1)
-    loss_test = F.nll_loss(output[idx_test], labels[idx_test])
-    acc_test = accuracy(output[idx_test], labels[idx_test])
-    return acc_test
+
+    y_pred = model.inference(data.x)
+    train_rocauc = evaluator.eval({
+        'y_true': data.y[split_idx['train']],
+        'y_pred': y_pred[split_idx['train']],
+    })['rocauc']
+    valid_rocauc = evaluator.eval({
+        'y_true': data.y[split_idx['valid']],
+        'y_pred': y_pred[split_idx['valid']],
+    })['rocauc']
+    test_rocauc = evaluator.eval({
+        'y_true': data.y[split_idx['test']],
+        'y_pred': y_pred[split_idx['test']],
+    })['rocauc']
+
+    return train_rocauc, valid_rocauc, test_rocauc
+
+
+def main():
+    model = GCN(data.num_features, args.hidden_channels, 112,
+                args.num_layers, args.dropout).to(device)
     
-    
-def train_supervised():
-    patience = 50
-    best_result = 0
-    best_std = 0
-    best_dropout = None
-    best_weight_decay = None
-    best_lr = None
-    best_time = 0
-    best_epoch = 0
+    for run in range(args.runs):
+        model.reset_parameters()
+        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+        for epoch in range(1, 1 + args.epochs):
+            loss = train(model, epoch, optimizer)
+            result = test(model)
 
-    lr = [0.05, 0.01,0.002]#,0.01,
-    weight_decay = [1e-4,5e-4,5e-5, 5e-3] #5e-5,1e-4,5e-4,1e-3,5e-3
-    dropout = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5 ,0.6, 0.7, 0.8, 0.9]
-    #for args.weight_decay, args.dropout in itertools.product(weight_decay, dropout):
-    for args.lr, args.weight_decay, args.dropout in itertools.product(lr, weight_decay, dropout):
-        result = np.zeros(10)
-        t_total = time.time()
-        num_epoch = 0
-        for idx in range(10):
-            #idx_train, idx_val, idx_test = rand_train_test_idx(labels)
-            idx_train, idx_val, idx_test = random_disassortative_splits(labels, num_class)
-            #rank = OneVsRestClassifier(LinearRegression()).fit(features[idx_train], labels[idx_train]).predict(features)
-            #print(rank)
-            #adj = reconstruct(old_adj, rank, num_class)
-
-            model = GAT(
-                    num_layers=args.layers,
-                    in_dim=features.shape[1],
-                    num_hidden=args.hidden,
-                    num_classes=labels.max().item() + 1,
-                    heads=heads,
-                    dropout=args.dropout)
-            #model = TwoCPPooling(in_fea=features.shape[1], out_class=labels.max().item() + 1, hidden1=2*args.hidden, hidden2=args.hidden, dropout=args.dropout)
-
-            if args.cuda:
-                #adj = adj.cuda()
-                idx_train = idx_train.cuda()
-                idx_val = idx_val.cuda()
-                idx_test = idx_test.cuda()
-                model.cuda()
-
-            optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-            vlss_mn = np.inf
-            vacc_mx = 0.0
-            vacc_early_model = None
-            vlss_early_model = None
-            curr_step = 0
-            best_test = 0
-            best_training_loss = None
-            for epoch in range(args.epochs):
-                num_epoch = num_epoch+1
-                t = time.time()
-                model.train()
-                optimizer.zero_grad()
-                output = model(g, features)
-                #print(F.softmax(output,dim=1))
-                output = F.log_softmax(output, dim=1)
-                #print(output)
-                loss_train = F.nll_loss(output[idx_train], labels[idx_train])
-                acc_train = accuracy(output[idx_train], labels[idx_train])
-                loss_train.backward()
-                optimizer.step()
-
-                if not args.fastmode:
-                    # Evaluate validation set performance separately,
-                    # deactivates dropout during validation run.
-                    model.eval()
-                    output = model(g, features)
-                    output = F.log_softmax(output, dim=1)
-
-                val_loss = F.nll_loss(output[idx_val], labels[idx_val])
-                val_acc = accuracy(output[idx_val], labels[idx_val])
-
-                if val_acc >= vacc_mx or val_loss <= vlss_mn:
-                    if val_acc >= vacc_mx and val_loss <= vlss_mn:
-                        vacc_early_model = val_acc
-                        vlss_early_model = val_loss
-                        best_test = test_sgcnh(model, idx_train, idx_val, idx_test)
-                        best_training_loss = loss_train
-                    vacc_mx = np.max((val_acc, vacc_mx))
-                    vlss_mn = np.min((val_loss, vlss_mn))
-                    curr_step = 0
-                else:
-                    curr_step += 1
-                    if curr_step >= patience:
-                        break
-
-            print("Optimization Finished! Best Test Result: %.4f, Training Loss: %.4f"%(best_test, best_training_loss))
-
-            #model.load_state_dict(state_dict_early_model)
-            # Testing
-            result[idx] = best_test
-
-            del model, optimizer
-            if args.cuda: torch.cuda.empty_cache()
-        five_epochtime = time.time() - t_total
-        print("Total time elapsed: {:.4f}s, Total Epoch: {:.4f}".format(five_epochtime, num_epoch))
-        print("learning rate %.4f, weight decay %.6f, dropout %.4f, Test Result: %.4f"%(args.lr, args.weight_decay, args.dropout, np.mean(result)))
-        if np.mean(result)>best_result:
-                best_result = np.mean(result)
-                best_std = np.std(result)
-                #best_dropout = args.dropout
-                best_weight_decay = args.weight_decay
-                best_lr = args.lr
-                best_time = five_epochtime
-                best_epoch = num_epoch
-
-    print("Best learning rate %.4f, Best weight decay %.6f, dropout %.4f, Test Mean: %.4f, Test Std: %.4f, Time/Run: %.4f, Time/Epoch: %.4f"%(best_lr, best_weight_decay, 0, best_result, best_std, best_time/5, best_time/best_epoch))
-    
-    
-def train_semisupervised():
-    patience = 50
-    best_result = 0
-    best_std = 0
-    best_dropout = None
-    best_weight_decay = None
-    best_lr = None
-    best_time = 0
-    best_epoch = 0
-
-    lr = [0.05]#, 0.01,0.002]#,0.01,
-    weight_decay = [1e-4]#,5e-4,5e-5, 5e-3] #5e-5,1e-4,5e-4,1e-3,5e-3
-    dropout = [0.1, 0.2, 0.3, 0.4, 0.5 ,0.6, 0.7, 0.8, 0.9]
-    idx_train, idx_val, idx_test = semi_supervised_splits(args.dataset_name)
-    if args.cuda:
-            idx_train = idx_train.cuda()
-            idx_val = idx_val.cuda()
-            idx_test = idx_test.cuda()
-            
-    for args.lr, args.weight_decay, args.dropout in itertools.product(lr, weight_decay, dropout):
-        result = 0
-        t_total = time.time()
-        num_epoch = 0
-        #idx_train, idx_val, idx_test = rand_train_test_idx(labels)
-        #rank = OneVsRestClassifier(LinearRegression()).fit(features[idx_train], labels[idx_train]).predict(features)
-        #print(rank)
-        #adj = reconstruct(old_adj, rank, num_class)
-
-        model = CPPooling(in_fea=features.shape[1], out_class=labels.max().item() + 1, hidden=args.hidden, dropout=args.dropout)
-        #model = TwoCPPooling(in_fea=features.shape[1], out_class=labels.max().item() + 1, hidden1=2*args.hidden, hidden2=args.hidden, dropout=args.dropout)
-
-        if args.cuda:
-            model.cuda()
-
-        optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-        vlss_mn = np.inf
-        vacc_mx = 0.0
-        vacc_early_model = None
-        vlss_early_model = None
-        curr_step = 0
-        best_test = 0
-        best_training_loss = None
-        for epoch in range(args.epochs):
-            num_epoch = num_epoch+1
-            t = time.time()
-            model.train()
-            optimizer.zero_grad()
-            output = model(g, features, norm)
-            #print(F.softmax(output,dim=1))
-            output = F.log_softmax(output, dim=1)
-            #print(output)
-            loss_train = F.nll_loss(output[idx_train], labels[idx_train])
-            acc_train = accuracy(output[idx_train], labels[idx_train])
-            loss_train.backward()
-            optimizer.step()
-
-            if not args.fastmode:
-                # Evaluate validation set performance separately,
-                # deactivates dropout during validation run.
-                model.eval()
-                output = model(g, features, norm)
-                output = F.log_softmax(output, dim=1)
-
-            val_loss = F.nll_loss(output[idx_val], labels[idx_val])
-            val_acc = accuracy(output[idx_val], labels[idx_val])
-
-            if val_acc >= vacc_mx or val_loss <= vlss_mn:
-                if val_acc >= vacc_mx and val_loss <= vlss_mn:
-                    vacc_early_model = val_acc
-                    vlss_early_model = val_loss
-                    best_test = test_sgcnh(model, idx_train, idx_val, idx_test)
-                    best_training_loss = loss_train
-                vacc_mx = np.max((val_acc, vacc_mx))
-                vlss_mn = np.min((val_loss, vlss_mn))
-                curr_step = 0
-            else:
-                curr_step += 1
-                if curr_step >= patience:
-                    break
-
-        print("Optimization Finished! Best Test Result: %.4f, Training Loss: %.4f"%(best_test, best_training_loss))
-
-        #model.load_state_dict(state_dict_early_model)
-        # Testing
-        #result[idx] = best_test
-        result = best_test
-        del model, optimizer
-        if args.cuda: torch.cuda.empty_cache()
-        epochtime = time.time() - t_total
-        #print("Total time elapsed: {:.4f}s, Total Epoch: {:.4f}".format(five_epochtime, num_epoch))
-        print("learning rate %.4f, weight decay %.6f, dropout %.4f, Total time elapsed: %.4f, Total Epoch: %.0f"%(args.lr, args.weight_decay, args.dropout, epochtime, num_epoch))
-        if result>best_result:
-                best_result = result
-                #best_std = np.std(result)
-                best_dropout = args.dropout
-                best_weight_decay = args.weight_decay
-                best_lr = args.lr
-                best_time = epochtime
-                best_epoch = num_epoch
-
-    print("Best learning rate %.4f, Best weight decay %.6f, dropout %.4f, Test Mean: %.4f, Time/Run: %.4f, Time/Epoch: %.4f"%(best_lr, best_weight_decay, best_dropout, best_result, best_time, best_time/best_epoch))
-    
-
-if args.task == 'sl':
-    train_supervised()
-elif args.task == 'ssl':
-    train_semisupervised()
+            if epoch % args.log_steps == 0:
+                train_acc, valid_acc, test_acc = result
+                print(f'Run: {run + 1:02d}, '
+                      f'Epoch: {epoch:02d}, '
+                      f'Loss: {loss:.4f}, '
+                      f'Train: {100 * train_acc:.2f}%, '
+                      f'Valid: {100 * valid_acc:.2f}% '
+                      f'Test: {100 * test_acc:.2f}%')
 
 
+
+if __name__ == "__main__":
+    main()
