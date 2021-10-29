@@ -17,7 +17,7 @@ parser.add_argument('--device', type=int, default=0)
 parser.add_argument('--log_steps', type=int, default=1)
 parser.add_argument('--use_sage', action='store_true')
 parser.add_argument('--num_layers', type=int, default=3)
-parser.add_argument('--batch_train', type=int, default=512)
+parser.add_argument('--batch_train', type=int, default=1000)
 parser.add_argument('--batch_test', type=int, default=10000)
 parser.add_argument('--num_workers', type=int, default=0)
 parser.add_argument('--hidden_channels', type=int, default=5)
@@ -40,7 +40,7 @@ data = dataset[0]
 split_idx = dataset.get_idx_split()
 train_idx = split_idx['train']
 
-data.x = scatter(data.edge_attr, data.edge_index[0], dim=0, dim_size=data.num_nodes, reduce='mean')
+data.x = scatter(data.edge_attr, data.edge_index[0], dim=0, dim_size=data.num_nodes, reduce='mean').to(device)
 #data.adj_t.set_value_(None)
 
 
