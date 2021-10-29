@@ -131,7 +131,7 @@ def train(model, epoch, optimizer):
         optimizer.zero_grad()
         out = model(data.x[n_id], adjs)
         
-        loss = criterion(out, data.y[n_id[:batch_size]].to(torch.float))
+        loss = criterion(out.cpu(), data.y[n_id[:batch_size]].to(torch.float))
         loss.backward()
         optimizer.step()
         total_loss += float(loss)
@@ -152,7 +152,7 @@ def train(model, epoch, optimizer):
 def test(model):
     model.eval()
 
-    y_pred = model.inference(data.x)
+    y_pred = model.inference(data.x).cpu()
     train_rocauc = evaluator.eval({
         'y_true': data.y[split_idx['train']],
         'y_pred': y_pred[split_idx['train']],
