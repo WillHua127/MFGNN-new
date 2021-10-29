@@ -9,8 +9,6 @@ from torch import Tensor
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 from torch_geometric.utils import degree
 import torch.nn.functional as F
-from ogb.graphproppred.mol_encoder import BondEncoder
-
 
 
     
@@ -89,10 +87,10 @@ class MessagePassing(torch.nn.Module):
         size = self.__check_input__(edge_index, size)
 
         if isinstance(edge_index, Tensor) or not self.fuse:
-            x_sum,x_prod = self.__collect__(edge_index, size, x[2:])
+            x_sum,x_prod = self.__collect__(edge_index, size, x)
             x_sum = self.message(x_sum, norm)
             x_prod = self.message(x_prod, norm)
-            x_sum, x_prod = self.aggregate((x[0], x[1], x_sum, x_prod), edge_index[1],ptr=None, dim_size=x[2].shape[0])
+            x_sum, x_prod = self.aggregate((x_sum, x_prod), edge_index[1],ptr=None, dim_size=dim_size)
         return x_sum, x_prod
 
     def message_simple(self, x_j: Tensor) -> Tensor:
@@ -102,7 +100,7 @@ class MessagePassing(torch.nn.Module):
     def aggregate(self, inputs: Tensor, index: Tensor,
                   ptr: Optional[Tensor] = None,
                   dim_size: Optional[int] = None) -> Tensor:
-        return self.scatter_sum(inputs[2], index, dim=self.node_dim, dim_size=dim_size),self.scatter_product(inputs[3], index, dim=self.node_dim,dim_size=dim_size)
+        return self.scatter_sum(inputs[0], index, dim=self.node_dim, dim_size=dim_size),self.scatter_product(inputs[1], index, dim=self.node_dim,dim_size=dim_size)
 
     def update(self, inputs: Tensor) -> Tensor:
         return inputs
@@ -179,7 +177,7 @@ class GCNConv(MessagePassing):
         return deg_inv_sqrt[row]  * deg_inv_sqrt[col]
 
     def forward(self, x, edge_index):
-        x_sum,x_sum_tar,x_prod,x_prod_tar = self.w1(x[0]),self.w1(x[1]),self.w2(x[0]),self.w2(x[1])
+        x_sum_tar,x_prod_tar = self.w1(x[1]),self.w2(x[1])
         #x_prod = self.w2(x)
         row, col = edge_index
 
@@ -190,7 +188,7 @@ class GCNConv(MessagePassing):
         norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
 
 
-        sum_agg, prod_agg = self.propagate(edge_index, x=(x_sum, x_prod, x_sum_tar,x_prod_tar), norm=norm, dim_size=x_sum_tar.shape[0])
+        sum_agg, prod_agg = self.propagate(edge_index, x=(x_sum_tar,x_prod_tar), norm=norm, dim_size=x_sum_tar.shape[0])
 
         return self.v(prod_agg)+(sum_agg)#+ F.relu6(x + self.root_emb.weight) * 1./deg.view(-1,1)
 
