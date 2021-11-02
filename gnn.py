@@ -191,7 +191,7 @@ class GCNConv(MessagePassing):
 
         sum_agg, prod_agg = self.propagate(edge_index, x=(x_sum_tar,x_prod_tar), norm=norm, dim_size=x_sum_tar.shape[0])
 
-        return self.v(prod_agg)+(sum_agg)+ F.relu6(x + self.root_emb.weight) * 1./deg.view(-1,1)
+        return self.v(prod_agg)+(sum_agg)+ F.relu6(x[1] + self.root_emb.weight) * 1./deg.view(-1,1)
 
     def message(self, x_j, norm):
         return norm.view(-1, 1) * F.relu(x_j)
