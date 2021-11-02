@@ -336,7 +336,7 @@ class GCNConv(MessagePassing):
             return edge_index, deg_inv_sqrt[row] * edge_weight * deg_inv_sqrt[col]
 
     def forward(self, x, edge_index, edge_attr):
-        x_sum, x_prod = self.w1(x),self.w2(x)
+        x_sum, x_prod = self.w1(x),self.w2(torch.cat((x, torch.ones([x.shape[0],1]).to('cuda:0')),1))#self.w2(x)
         #x_prod = self.w2(x)
         edge_embedding = edge_attr#self.bond_encoder(edge_attr.squeeze())
 
