@@ -295,7 +295,7 @@ class GCNConv(MessagePassing):
         super(GCNConv, self).__init__(aggr='add')
 
         self.w1 = torch.nn.Linear(emb_dim, hidden_dim)
-        self.w2 = torch.nn.Linear(emb_dim, rank_dim)
+        self.w2 = torch.nn.Linear(emb_dim+1, rank_dim)
         self.v = torch.nn.Linear(rank_dim, hidden_dim)
         self.root_emb = torch.nn.Embedding(1, hidden_dim)
         #self.bond_encoder = BondEncoder(emb_dim = emb_dim)
