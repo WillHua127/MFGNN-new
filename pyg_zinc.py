@@ -42,6 +42,7 @@ from torch_geometric.nn.conv.utils.typing import (sanitize, split_types_repr, pa
 from torch_geometric.nn.conv.utils.inspector import Inspector, func_header_repr, func_body_repr
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 from torch_scatter import scatter_add
+from torch_geometric.nn.inits import zeros
 
 
 argparser = argparse.ArgumentParser("multi-gpu training")
@@ -296,14 +297,16 @@ class GCNConv(MessagePassing):
         self.w1 = torch.nn.Linear(emb_dim, hidden_dim)
         self.w2 = torch.nn.Linear(emb_dim, rank_dim)
         self.v = torch.nn.Linear(rank_dim, hidden_dim)
-        self.root_emb = torch.nn.Embedding(1, hidden_dim)
+        #self.root_emb = torch.nn.Embedding(1, hidden_dim)
         #self.bond_encoder = BondEncoder(emb_dim = emb_dim)
+        self.bias = torch.nn.Parameter(torch.Tensor(hidden_dim))
         self.reset_parameters()
         
     def reset_parameters(self):
         self.w1.reset_parameters()
         self.w2.reset_parameters()
         self.v.reset_parameters()
+        zeros(self.bias)
         
     def gcn_norm(self,edge_index, edge_weight=None, num_nodes=None, dtype=None):
 
@@ -348,7 +351,8 @@ class GCNConv(MessagePassing):
         #edge_index, edge_attr = self.gcn_norm(edge_index,edge_weight=edge_attr)
         sum_agg, prod_agg = self.propagate(edge_index, x=(x_sum,x_prod), edge_attr = edge_attr, norm=norm)
 
-        return self.v(prod_agg)+sum_agg + F.relu(x + self.root_emb.weight) * 1./deg.view(-1,1)
+        #return self.v(prod_agg)+sum_agg + F.relu(x + self.root_emb.weight) * 1./deg.view(-1,1)
+        return self.v(prod_agg)+sum_agg + self.bias
 
     def message(self, x_j, edge_attr, norm):
         #return norm.view(-1, 1) * F.relu(x_j + edge_attr)
