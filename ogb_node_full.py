@@ -392,7 +392,7 @@ if __name__ == '__main__':
     argparser.add_argument('--num-epochs', type=int, default=2000)
     argparser.add_argument('--num-hidden', type=int, default=128)
     argparser.add_argument('--num-layers', type=int, default=3)
-    argparser.add_argument('--fan-out', type=str, default='5,10,15')
+    argparser.add_argument('--fan-out', type=str, default='10,10,10')
     argparser.add_argument('--batch-size', type=int, default=1000)
     argparser.add_argument('--val-batch-size', type=int, default=10000)
     argparser.add_argument('--dataset', type=str,
