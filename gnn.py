@@ -149,6 +149,7 @@ class GCNConv(MessagePassing):
         self.w1 = torch.nn.Linear(in_feat, out_feat)
         self.w2 = torch.nn.Linear(in_feat, out_feat)
         self.v = torch.nn.Linear(out_feat, out_feat)
+        self.root_emb = torch.nn.Embedding(1, out_feat)
         self.reset_parameters()
         
     def reset_parameters(self):
