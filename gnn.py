@@ -9,6 +9,7 @@ from torch import Tensor
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 from torch_geometric.utils import degree
 import torch.nn.functional as F
+from torch_geometric.nn.inits import zeros
 
 
     
@@ -149,13 +150,14 @@ class GCNConv(MessagePassing):
         self.w1 = torch.nn.Linear(in_feat, out_feat)
         self.w2 = torch.nn.Linear(in_feat, out_feat)
         self.v = torch.nn.Linear(out_feat, out_feat)
-        self.root_emb = torch.nn.Embedding(1, out_feat)
+        self.bias = torch.nn.Parameter(torch.Tensor(out_feat))
         self.reset_parameters()
         
     def reset_parameters(self):
         self.w1.reset_parameters()
         self.w2.reset_parameters()
         self.v.reset_parameters()
+        zeros(self.bias)
         
     def gcn_norm(self,edge_index, num_nodes=None, dtype=None, add_self_loops=True):
         num_nodes = maybe_num_nodes(edge_index, num_nodes)
@@ -191,7 +193,7 @@ class GCNConv(MessagePassing):
 
         sum_agg, prod_agg = self.propagate(edge_index, x=(x_sum_tar,x_prod_tar), norm=norm, dim_size=x_sum_tar.shape[0])
 
-        return self.v(prod_agg)+(sum_agg)+ F.relu6(x[1] + self.root_emb.weight) * 1./deg.view(-1,1)
+        return self.v(prod_agg)+(sum_agg)+ self.bias#F.relu6(x[1] + self.root_emb.weight) * 1./deg.view(-1,1)
 
     def message(self, x_j, norm):
         return norm.view(-1, 1) * F.relu(x_j)
