@@ -351,7 +351,7 @@ class GCNConv(MessagePassing):
         #edge_index, edge_attr = self.gcn_norm(edge_index,edge_weight=edge_attr)
         sum_agg, prod_agg = self.propagate(edge_index, x=(x_sum,x_prod), edge_attr = edge_attr, norm=norm)
 
-        return self.v(prod_agg)+sum_agg + F.relu6(x + self.root_emb.weight) * 1./deg.view(-1,1)
+        return self.v(prod_agg) + F.relu6(x + self.root_emb.weight) * 1./deg.view(-1,1)# +sum_agg
         #return self.v(prod_agg)+sum_agg + self.bias
 
     def message(self, x_j, edge_attr, norm):
