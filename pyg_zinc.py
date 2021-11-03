@@ -67,6 +67,22 @@ val_loader = DataLoader(val_dataset, batch_size=args.batch)
 test_loader = DataLoader(test_dataset, batch_size=args.batch)
 
 
+class graph_cp_pooling(torch.nn.Module):
+    def __init__(self, out_feats):
+        super(graph_cp_pooling, self).__init__()
+        self.w = torch.nn.Linear(out_feats+1, out_feats)
+        self.reset_parameters()
+        
+    def reset_parameters(self):
+        self.w.reset_parameters()
+        
+    def forward(self, x, batch):
+        #fea = self.w(x)
+        x = self.w(torch.cat((x, torch.ones([x.shape[0],1]).to('cuda:0')),1))
+        size = int(batch.max().item() + 1) if size is None else size
+        #fea = torch.prod(fea,0).unsqueeze(0)
+        return scatter(x, batch, dim=0, dim_size=size, reduce='sum')
+    
 def global_add_pool(x, batch, size = None):
     size = int(batch.max().item() + 1) if size is None else size
     return scatter(x, batch, dim=0, dim_size=size, reduce='sum')
@@ -387,6 +403,7 @@ class Net(torch.nn.Module):
         scalers = ['identity', 'amplification', 'attenuation']
 
         self.convs = ModuleList()
+        self.pool = graph_cp_pooling(hidden_dim)
         self.batch_norms = ModuleList()
         for _ in range(n_layers):
             #conv = PNAConv(in_channels=75, out_channels=75,
@@ -414,7 +431,8 @@ class Net(torch.nn.Module):
         #for conv, batch_norm in zip(self.convs, self.batch_norms):
         #    x = F.relu(batch_norm(conv(x, edge_index, edge_attr)))
 
-        x = global_add_pool(x, batch)
+        #x = global_add_pool(x, batch)
+        x = self.pool(x,batch)
         return self.mlp(x)
 
 
