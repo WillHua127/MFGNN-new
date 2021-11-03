@@ -78,10 +78,10 @@ class graph_cp_pooling(torch.nn.Module):
         
     def forward(self, x, batch, size=None):
         #fea = self.w(x)
-        x = self.w(torch.cat((x, torch.ones([x.shape[0],1]).to('cuda:0')),1))
+        fea = self.w(torch.cat((x, torch.ones([x.shape[0],1]).to('cuda:0')),1))
         size = int(batch.max().item() + 1) if size is None else size
         #fea = torch.prod(fea,0).unsqueeze(0)
-        return scatter(x, batch, dim=0, dim_size=size, reduce='mul')#+scatter(x, batch, dim=0, dim_size=size, reduce='mul')
+        return scatter(fea, batch, dim=0, dim_size=size, reduce='mul')+scatter(x, batch, dim=0, dim_size=size, reduce='sum')
     
 def global_add_pool(x, batch, size = None):
     size = int(batch.max().item() + 1) if size is None else size
