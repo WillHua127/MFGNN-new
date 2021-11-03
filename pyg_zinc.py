@@ -9,7 +9,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch_geometric.utils import degree
 from torch_geometric.datasets import ZINC
 #from torch.utils.data import DataLoader
-from torch_geometric.nn import BatchNorm, global_add_pool#, GCNConv
+from torch_geometric.nn import BatchNorm#, global_add_pool#, GCNConv
 #from ogb.graphproppred.mol_encoder import AtomEncoder,BondEncoder
 from tqdm import tqdm
 #from torch_geometric.nn import MessagePassing
@@ -64,6 +64,11 @@ test_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split=
 train_loader = DataLoader(train_dataset, batch_size=args.batch, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=args.batch)
 test_loader = DataLoader(test_dataset, batch_size=args.batch)
+
+
+def global_add_pool(x, batch, size = None):
+    size = int(batch.max().item() + 1) if size is None else size
+    return scatter(x, batch, dim=0, dim_size=size, reduce='add')
     
 class MessagePassing(torch.nn.Module):
     special_args: Set[str] = {
