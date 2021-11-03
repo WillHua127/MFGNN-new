@@ -118,7 +118,7 @@ class DGLGraphConv(nn.Module):
 
 
             feat_sumsrc = th.matmul(feat_src, self.w1)
-            feat_prodsrc = th.tanh(th.matmul(th.cat((feat_src, th.ones([feat_src.shape[0],1]).to('cuda:0')),1), self.w2))
+            feat_prodsrc = (th.matmul(th.cat((feat_src, th.ones([feat_src.shape[0],1]).to('cuda:0')),1), self.w2))
             graph.srcdata['h_sum'] = feat_sumsrc
             graph.srcdata['h_prod'] = feat_prodsrc
             graph.update_all(fn.copy_src('h_sum', 'm_sum'), self._elementwise_sum)
