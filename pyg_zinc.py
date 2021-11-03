@@ -76,7 +76,7 @@ class graph_cp_pooling(torch.nn.Module):
     def reset_parameters(self):
         self.w.reset_parameters()
         
-    def forward(self, x, batch):
+    def forward(self, x, batch, size=None):
         #fea = self.w(x)
         x = self.w(torch.cat((x, torch.ones([x.shape[0],1]).to('cuda:0')),1))
         size = int(batch.max().item() + 1) if size is None else size
