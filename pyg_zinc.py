@@ -14,6 +14,7 @@ from torch_geometric.nn import BatchNorm#, global_add_pool#, GCNConv
 from tqdm import tqdm
 #from torch_geometric.nn import MessagePassing
 import argparse
+from torch_scatter import scatter
 
 
 from typing import List, Optional, Set, Callable, get_type_hints
