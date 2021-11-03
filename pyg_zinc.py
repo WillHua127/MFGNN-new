@@ -68,7 +68,7 @@ test_loader = DataLoader(test_dataset, batch_size=args.batch)
 
 def global_add_pool(x, batch, size = None):
     size = int(batch.max().item() + 1) if size is None else size
-    return scatter(x, batch, dim=0, dim_size=size, reduce='add')
+    return scatter(x, batch, dim=0, dim_size=size, reduce='mul')
     
 class MessagePassing(torch.nn.Module):
     special_args: Set[str] = {
