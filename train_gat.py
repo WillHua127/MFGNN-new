@@ -252,7 +252,8 @@ num_class = labels.max()+1
 
 if args.cuda:
     features = features.cuda()
-    g = g.to('cuda:0')
+    device = torch.device('cuda:%d' % 0)
+    g = g.to(device)
     labels = labels.cuda()
     #norm = norm.cuda()
     #idx_train = idx_train.cuda()
