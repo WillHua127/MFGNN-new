@@ -252,7 +252,7 @@ num_class = labels.max()+1
 
 if args.cuda:
     features = features.cuda()
-    g.to('cuda:0')
+    g = g.to('cuda:0')
     labels = labels.cuda()
     #norm = norm.cuda()
     #idx_train = idx_train.cuda()
