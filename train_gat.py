@@ -291,8 +291,8 @@ def train_supervised():
         num_epoch = 0
         for idx in range(10):
             #idx_train, idx_val, idx_test = rand_train_test_idx(labels)
-            idx_train, idx_val, idx_test = random_disassortative_splits(labels, num_class)
-            #idx_train, idx_val, idx_test = data_split(idx, args.dataset_name)
+            #idx_train, idx_val, idx_test = random_disassortative_splits(labels, num_class)
+            idx_train, idx_val, idx_test = data_split(idx, args.dataset_name)
             #rank = OneVsRestClassifier(LinearRegression()).fit(features[idx_train], labels[idx_train]).predict(features)
             #print(rank)
             #adj = reconstruct(old_adj, rank, num_class)
