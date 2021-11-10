@@ -10,7 +10,6 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from dgl.nn.pytorch.conv import GATConv
 import torch.nn as nn
 import dgl.function as fn
 from dgl.base import DGLError
