@@ -106,7 +106,7 @@ class GATConv(nn.Module):
         self.feat_drop = nn.Dropout(feat_drop)
         self.attn_drop = nn.Dropout(attn_drop)
         self.leaky_relu = nn.LeakyReLU(negative_slope)
-        self.model_type = 'else'
+        self.model_type = 'acmgat'
         self.reset_parameters()
         self.activation = activation
 
