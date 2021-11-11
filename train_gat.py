@@ -106,7 +106,7 @@ class GATConv(nn.Module):
         self.feat_drop = nn.Dropout(feat_drop)
         self.attn_drop = nn.Dropout(attn_drop)
         self.leaky_relu = nn.LeakyReLU(negative_slope)
-        self.model_type = 'acmgat'
+        self.model_type = 'else'
         self.reset_parameters()
         self.activation = activation
 
@@ -179,8 +179,8 @@ class GATConv(nn.Module):
                 
             else:
                 feat_src = feat_dst = self.fc_self(feat).view(-1, self._num_heads, self._out_feats)
-                el = (feat_src * self.attn_l).sum(dim=-1).unsqueeze(-1)
-                er = (feat_dst * self.attn_r).sum(dim=-1).unsqueeze(-1)
+                el = (feat_src * self.attn_l_low).sum(dim=-1).unsqueeze(-1)
+                er = (feat_dst * self.attn_r_low).sum(dim=-1).unsqueeze(-1)
                 graph.srcdata.update({'ft': feat_src, 'el': el})
                 graph.dstdata.update({'er': er})
                 graph.apply_edges(fn.u_add_v('el', 'er', 'e'))
