@@ -52,7 +52,7 @@ parser.add_argument("--layers", type=int, default=2,
                     help="number of hidden layers")
 parser.add_argument('--sub_dataname', type=str,
                     help='subdata name.', default = 'DE')
-parser.add_argument('--dropout', type=float, default=0.1,
+parser.add_argument('--dropout', type=float, default=0.0,
                     help='Dropout rate (1 - keep probability).')
 parser.add_argument('--task', type=str,
                     help='semi-supervised learning or supervised learning.', default = 'sl')
