@@ -445,8 +445,8 @@ class Net(torch.nn.Module):
         #for conv, batch_norm in zip(self.convs, self.batch_norms):
         #    x = F.relu(batch_norm(conv(x, edge_index, edge_attr)))
 
-        #x = global_add_pool(x, batch)
-        x = self.pool(x,batch)
+        x = global_add_pool(x, batch)
+        #x = self.pool(x,batch)
         return self.mlp(x)
 
 
