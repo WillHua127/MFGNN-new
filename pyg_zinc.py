@@ -1,5 +1,6 @@
 import os.path as osp
 
+from torch_geometric.nn import BatchNorm#, global_add_pool#, GCNConv
 from torch_geometric.data import DataLoader
 import torch
 import torch.nn.functional as F
@@ -9,7 +10,6 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch_geometric.utils import degree
 from torch_geometric.datasets import ZINC
 #from torch.utils.data import DataLoader
-from torch_geometric.nn import BatchNorm#, global_add_pool#, GCNConv
 #from ogb.graphproppred.mol_encoder import AtomEncoder,BondEncoder
 from tqdm import tqdm
 #from torch_geometric.nn import MessagePassing
