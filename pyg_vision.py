@@ -58,9 +58,9 @@ argparser.add_argument('--dataset', type=str, default="MNIST")
 args = argparser.parse_args()
 args.hidden,args.rank = args.emb,args.emb
 
-train_dataset = GNNBenchmarkDataset(osp.join('data',args.dataset),name=args.dataset,split='train', transform = T.Cartesian(cat=False))
-val_dataset = GNNBenchmarkDataset(osp.join('data',args.dataset),name=args.dataset,split='val', transform = T.Cartesian(cat=False))
-test_dataset = GNNBenchmarkDataset(osp.join('data',args.dataset),name=args.dataset,split='test', transform = T.Cartesian(cat=False))
+train_dataset = GNNBenchmarkDataset(osp.join('torch_geometric_data',args.dataset),name=args.dataset,split='train', transform = T.Cartesian(cat=False))
+val_dataset = GNNBenchmarkDataset(osp.join('torch_geometric_data',args.dataset),name=args.dataset,split='val', transform = T.Cartesian(cat=False))
+test_dataset = GNNBenchmarkDataset(osp.join('torch_geometric_data',args.dataset),name=args.dataset,split='test', transform = T.Cartesian(cat=False))
 n_efeat = train_dataset[0].edge_attr.shape[1]
 n_nfeat = train_dataset[0].x.shape[1]
 n_class = train_dataset.num_classes
