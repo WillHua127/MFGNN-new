@@ -319,6 +319,9 @@ class GCNConv(MessagePassing):
         self.w1 = torch.nn.Linear(emb_dim, hidden_dim)
         self.w2 = torch.nn.Linear(emb_dim+1, rank_dim)
         self.v = torch.nn.Linear(rank_dim, hidden_dim)
+        self.att1= torch.nn.Linear(hidden_dim, 1, bias=False)
+        self.att2 = torch.nn.Linear(hidden_dim, 1, bias=False)
+        self.att_vec = torch.nn.Linear(2, 2, bias=False)
         self.root_emb = torch.nn.Embedding(1, hidden_dim)
         #self.bond_encoder = BondEncoder(emb_dim = emb_dim)
         #self.bias = torch.nn.Parameter(torch.Tensor(hidden_dim))
@@ -327,6 +330,9 @@ class GCNConv(MessagePassing):
     def reset_parameters(self):
         self.w1.reset_parameters()
         self.w2.reset_parameters()
+        self.att1.reset_parameters()
+        self.att2.reset_parameters()
+        self.att_vec.reset_parameters()
         self.v.reset_parameters()
         #zeros(self.bias)
         
@@ -356,6 +362,11 @@ class GCNConv(MessagePassing):
             deg_inv_sqrt = deg.pow_(-0.5)
             deg_inv_sqrt.masked_fill_(deg_inv_sqrt == float('inf'), 0)
             return edge_index, deg_inv_sqrt[row] * edge_weight * deg_inv_sqrt[col]
+        
+    def attention(self, prod, bias):
+        T = 2
+        att = torch.softmax(self.att_vec(torch.sigmoid(torch.cat([self.att1(prod) ,self.att2(bias)],1)))/T,1)
+        return att[:,0][:,None],att[:,1][:,None]
 
     def forward(self, x, edge_index, edge_attr):
         x_sum, x_prod = self.w1(x),self.w2(torch.cat((x, torch.ones([x.shape[0],1]).to('cuda:0')),1))#self.w2(x)
@@ -372,10 +383,13 @@ class GCNConv(MessagePassing):
         norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
         #edge_index, edge_attr = self.gcn_norm(edge_index,edge_weight=edge_attr)
         sum_agg, prod_agg = self.propagate(edge_index, x=(x_sum,x_prod), edge_attr = edge_attr, norm=norm)
+        prod_agg = self.v(prod_agg)
+        att_prod, att_sum = self.attention(prod_agg, sum_agg)
+        rst = att_prod*prod_agg + att_sum*sum_agg
 
-        return self.v(prod_agg) + F.relu6(x + self.root_emb.weight) * 1./deg.view(-1,1) +sum_agg
-        #return self.v(prod_agg)+sum_agg + self.bias
-
+        #return self.v(prod_agg) + F.relu6(x + self.root_emb.weight) * 1./deg.view(-1,1) +sum_agg
+        return rst
+    
     def message(self, x_j, edge_attr, norm):
         return norm.view(-1, 1) * F.relu(x_j + edge_attr)
         #return norm.view(-1, 1) * F.relu(x_j)
