@@ -137,7 +137,7 @@ class GATConv(nn.Module):
         return att[:,0][:,None],att[:,1][:,None],att[:,2][:,None]
     
     def _elementwise_product(self, nodes):
-        return {'h_prod':th.prod(nodes.mailbox['m_prod'],dim=1)}
+        return {'h_prod':torch.prod(nodes.mailbox['m_prod'],dim=1)}
       
     def forward(self, graph, feat):
         with graph.local_scope():
