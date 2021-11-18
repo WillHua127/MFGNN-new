@@ -136,6 +136,9 @@ class GATConv(nn.Module):
         #att = torch.softmax(self.att_vec(torch.sigmoid(torch.cat([output_low*self.att_vec_low ,output_high*self.att_vec_high ,output_mlp*self.att_vec_mlp ],1)))/T,1)
         return att[:,0][:,None],att[:,1][:,None],att[:,2][:,None]
     
+    def _elementwise_product(self, nodes):
+        return {'h_prod':th.prod(nodes.mailbox['m_prod'],dim=1)}
+      
     def forward(self, graph, feat):
         with graph.local_scope():
             feat = self.feat_drop(feat)
@@ -191,7 +194,7 @@ class GATConv(nn.Module):
                 # message passing
                 #graph.update_all(fn.u_mul_e('ft', 'a', 'm'),
                 #                 fn.sum('m', 'ft'))
-                graph.update_all(fn.copy_src('h', 'm'), fn.sum(msg='m', out='h'))
+                graph.update_all(fn.copy_src('h', 'm_prod'), self._elementwise_product)
                 rst = graph.dstdata['h'].view(-1, self._num_heads, self._out_feats)
 
             if self.activation:
