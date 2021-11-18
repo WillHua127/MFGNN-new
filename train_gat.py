@@ -106,7 +106,7 @@ class GATConv(nn.Module):
         self.feat_drop = nn.Dropout(feat_drop)
         self.attn_drop = nn.Dropout(attn_drop)
         self.leaky_relu = nn.LeakyReLU(negative_slope)
-        self.model_type = 'acmgat'
+        self.model_type = 'else'
         self.reset_parameters()
         self.activation = activation
 
@@ -178,20 +178,21 @@ class GATConv(nn.Module):
                 rst = (att_low*low+att_high*high+att_mlp*identity).view(-1, self._num_heads, self._out_feats)
                 
             else:
-                feat_src = feat_dst = self.fc_self(feat).view(-1, self._num_heads, self._out_feats)
-                el = (feat_src * self.attn_l_low).sum(dim=-1).unsqueeze(-1)
-                er = (feat_dst * self.attn_r_low).sum(dim=-1).unsqueeze(-1)
-                graph.srcdata.update({'ft': feat_src, 'el': el})
-                graph.dstdata.update({'er': er})
-                graph.apply_edges(fn.u_add_v('el', 'er', 'e'))
-                e = self.leaky_relu(graph.edata.pop('e'))
+                feat_src = feat_dst = self.fc_self(feat)#.view(-1, self._num_heads, self._out_feats)
+                graph.srcdata['h'] = feat_src
+                #el = (feat_src * self.attn_l_low).sum(dim=-1).unsqueeze(-1)
+                #r = (feat_dst * self.attn_r_low).sum(dim=-1).unsqueeze(-1)
+                #graph.srcdata.update({'ft': feat_src, 'el': el})
+                #graph.dstdata.update({'er': er})
+                #graph.apply_edges(fn.u_add_v('el', 'er', 'e'))
+                #e = self.leaky_relu(graph.edata.pop('e'))
                 # compute softmax
-                graph.edata['a'] = self.attn_drop(edge_softmax(graph, e))
+                #graph.edata['a'] = self.attn_drop(edge_softmax(graph, e))
                 # message passing
-                graph.update_all(fn.u_mul_e('ft', 'a', 'm'),
-                                 fn.sum('m', 'ft'))
-                
-                rst = graph.dstdata['ft']
+                #graph.update_all(fn.u_mul_e('ft', 'a', 'm'),
+                #                 fn.sum('m', 'ft'))
+                graph.update_all(fn.copy_src('h', 'm'), fn.sum(msg='m', out='h'))
+                rst = graph.dstdata['h']
 
             if self.activation:
                 rst = self.activation(rst)
