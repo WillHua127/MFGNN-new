@@ -192,7 +192,7 @@ class GATConv(nn.Module):
                 #graph.update_all(fn.u_mul_e('ft', 'a', 'm'),
                 #                 fn.sum('m', 'ft'))
                 graph.update_all(fn.copy_src('h', 'm'), fn.sum(msg='m', out='h'))
-                rst = graph.dstdata['h']
+                rst = graph.dstdata['h'].view(-1, self._num_heads, self._out_feats)
 
             if self.activation:
                 rst = self.activation(rst)
