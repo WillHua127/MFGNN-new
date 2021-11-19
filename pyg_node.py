@@ -339,6 +339,7 @@ features = data[0].x
 num_class = labels.max()+1
 
 if args.cuda:
+    edge = edge.cuda()
     features = features.cuda()
     #adj = adj.cuda()
     labels = labels.cuda()
