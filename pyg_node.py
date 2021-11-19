@@ -315,7 +315,7 @@ class GCN(nn.Module):
     def forward(self, x, edge_index):
         h = x
         for l in range(self.num_layers):
-            h = F.relu(self.gat_layers[l](h, edge_index))
+            h = F.dropout(F.relu(self.gat_layers[l](h, edge_index)), self.dropout, training = self.training)
         # output projection
         logits = self.gat_layers[-1](h, edge_index)
         return logits
