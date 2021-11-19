@@ -437,8 +437,8 @@ def train_supervised():
                         vlss_early_model = val_loss
                         best_test = test(model, idx_train, idx_val, idx_test)
                         best_training_loss = loss_train
-                    vacc_mx = np.max((val_acc, vacc_mx))
-                    vlss_mn = np.min((val_loss, vlss_mn))
+                    vacc_mx = val_acc
+                    vlss_mn = val_loss
                     curr_step = 0
                 else:
                     curr_step += 1
