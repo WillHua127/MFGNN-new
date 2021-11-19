@@ -283,7 +283,7 @@ class GCNConv(MessagePassing):
         prod_agg = self.v(prod_agg)
         #rst = prod_agg
         att_prod, att_sum, att_iden = self.attention(prod_agg, sum_agg,x_self)
-        rst = att_prod*prod_agg + att_sum*sum_agg + att_iden*x_sum
+        rst = att_prod*prod_agg + att_sum*sum_agg + att_iden*x_self
         #rst = prod_agg+sum_agg
         
 
