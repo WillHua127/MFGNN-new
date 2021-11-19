@@ -280,9 +280,10 @@ class GCNConv(MessagePassing):
         #rst = prod_agg
         #att_prod, att_sum = self.attention(prod_agg, sum_agg)
         #rst = att_prod*prod_agg + att_sum*sum_agg
+        rst = prod_agg+sum_agg
         
 
-        return prod_agg
+        return rst
     
 
     def update(self, aggr_out):
