@@ -459,13 +459,13 @@ def train_supervised():
         if np.mean(result)>best_result:
                 best_result = np.mean(result)
                 best_std = np.std(result)
-                #best_dropout = args.dropout
+                best_dropout = args.dropout
                 best_weight_decay = args.weight_decay
                 best_lr = args.lr
                 best_time = five_epochtime
                 best_epoch = num_epoch
 
-    print("Best learning rate %.4f, Best weight decay %.6f, dropout %.4f, Test Mean: %.4f, Test Std: %.4f, Time/Run: %.4f, Time/Epoch: %.4f"%(best_lr, best_weight_decay, 0, best_result, best_std, best_time/5, best_time/best_epoch))
+    print("Best learning rate %.4f, Best weight decay %.6f, dropout %.4f, Test Mean: %.4f, Test Std: %.4f, Time/Run: %.4f, Time/Epoch: %.4f"%(best_lr, best_weight_decay, best_dropout, best_result, best_std, best_time/5, best_time/best_epoch))
     
     
 
