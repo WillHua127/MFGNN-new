@@ -278,11 +278,11 @@ class GCNConv(MessagePassing):
         sum_agg, prod_agg = self.propagate(edge_index, x=(x_sum,x_prod))
         prod_agg = self.v(prod_agg)
         #rst = prod_agg
-        att_prod, att_sum = self.attention(prod_agg, sum_agg)
-        rst = att_prod*prod_agg + att_sum*sum_agg
+        #att_prod, att_sum = self.attention(prod_agg, sum_agg)
+        #rst = att_prod*prod_agg + att_sum*sum_agg
         
 
-        return rst
+        return prod_agg
     
 
     def update(self, aggr_out):
