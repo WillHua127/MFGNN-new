@@ -262,7 +262,7 @@ class GCNConv(MessagePassing):
         return att[:,0][:,None],att[:,1][:,None]
 
     def forward(self, x, edge_index):
-        x_sum, x_prod = self.w2(x),torch.tanh(self.w2(torch.cat((x, torch.ones([x.shape[0],1]).to('cuda:0')),1)))#self.w2(x)
+        x_sum, x_prod = self.w1(x),torch.tanh(self.w2(torch.cat((x, torch.ones([x.shape[0],1]).to('cuda:0')),1)))#self.w2(x)
         #x_sum, x_prod = self.w1(x),torch.tanh(self.w2(torch.cat((x, torch.ones([x.shape[0],1])),1)))#self.w2(x)
         #x_prod = self.w2(x)
 
@@ -279,7 +279,7 @@ class GCNConv(MessagePassing):
         prod_agg = self.v(prod_agg)
         #rst = prod_agg
         att_prod, att_sum = self.attention(prod_agg, sum_agg)
-        rst = att_prod*prod_agg + att_sum*sum_agg
+        rst = att_prod*prod_agg + att_sum*sum_agg + x_sum
         #rst = prod_agg+sum_agg
         
 
