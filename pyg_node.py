@@ -262,7 +262,7 @@ class GCNConv(MessagePassing):
         return att[:,0][:,None],att[:,1][:,None]
 
     def forward(self, x, edge_index):
-        x_sum, x_prod = self.w1(x),self.w2(torch.cat((x, torch.ones([x.shape[0],1]).to('cuda:0')),1))#self.w2(x)
+        x_sum, x_prod = self.w1(x),torch.tanh(self.w2(torch.cat((x, torch.ones([x.shape[0],1]).to('cuda:0')),1)))#self.w2(x)
         #x_sum, x_prod = self.w1(x),torch.tanh(self.w2(torch.cat((x, torch.ones([x.shape[0],1])),1)))#self.w2(x)
         #x_prod = self.w2(x)
 
