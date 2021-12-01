@@ -398,7 +398,7 @@ def train_supervised():
                     in_dim=features.shape[1],
                     num_hidden=args.hidden,
                     num_classes=labels.max().item() + 1,
-                    rank=args.rank
+                    rank=args.rank,
                     dropout=args.dropout)
 
             if args.cuda:
