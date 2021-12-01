@@ -63,6 +63,8 @@ parser.add_argument("--num-heads", type=int, default=8,
                         help="number of hidden attention heads")
 parser.add_argument("--num-out-heads", type=int, default=1,
                         help="number of output attention heads")
+parser.add_argument("--rank", type=int, default=32,
+                        help="number of output attention heads")
 parser.add_argument("--heads", type=int, default=8,
                     help="number of hidden attention heads")
 parser.add_argument("--out_heads", type=int, default=1,
@@ -299,6 +301,7 @@ class GCN(nn.Module):
                  in_dim,
                  num_hidden,
                  num_classes,
+                 rank,
                  dropout):
         super(GCN, self).__init__()
         self.num_layers = num_layers
@@ -307,15 +310,15 @@ class GCN(nn.Module):
         feat_drop = dropout
         # input projection (no residual)
         self.gat_layers.append(GCNConv(
-            in_dim, num_hidden,num_hidden))
+            in_dim, num_hidden,rank))
 
         for l in range(1, num_layers):
             self.gat_layers.append(GCNConv(
-                num_hidden, num_hidden, num_hidden))
+                num_hidden, num_hidden, rank))
         # output projection
         #self.gat_layers.append(GATConv(num_hidden * heads[-2], num_classes))
         self.gat_layers.append(GCNConv(
-            num_hidden, num_classes, num_hidden))
+            num_hidden, num_classes, rank))
 
     def forward(self, x, edge_index):
         h = x
@@ -395,6 +398,7 @@ def train_supervised():
                     in_dim=features.shape[1],
                     num_hidden=args.hidden,
                     num_classes=labels.max().item() + 1,
+                    rank=args.rank
                     dropout=args.dropout)
 
             if args.cuda:
