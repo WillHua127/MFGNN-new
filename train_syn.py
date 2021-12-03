@@ -12,7 +12,7 @@ import matplotlib
 import scipy
 import itertools
 
-from utils import load_data, accuracy, full_load_data, data_split, normalize, normalize_adj,sparse_mx_to_torch_sparse_tensor, preprocess_features, random_disassortative_splits
+from utils_syn import load_data, accuracy, full_load_data, data_split, normalize, normalize_adj,sparse_mx_to_torch_sparse_tensor, preprocess_features, random_disassortative_splits
 from models_syn import TGNN
 # from dataset_stats import Svalue
 
