@@ -28,7 +28,7 @@ parser.add_argument('--param_tunning', action='store_true', default=False,
 parser.add_argument('--model_type', type=str,
                     help='Indicate the GNN model we use (gcn,sgc,mlp,acmgcn,acmsgc)', default = 'gcn')
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
-parser.add_argument('--epochs', type=int, default=2,
+parser.add_argument('--epochs', type=int, default=5000,
                     help='Number of epochs to train.')
 parser.add_argument('--num_splits', type=int, help='number of training/val/test splits ', default = 10)
 parser.add_argument('--lr', type=float, default=0.05,
