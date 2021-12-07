@@ -151,7 +151,7 @@ class DGLGraphConv(nn.Module):
                 
             
             feat_sum_src = torch.matmul(feat_src, self.weight_sum)
-            feat_prod_src = torch.matmul(torch.cat((feat_src, torch.ones([x.shape[0],1]).to('cuda:0')),1), self.weight_prod)
+            feat_prod_src = torch.matmul(torch.cat((feat_src, torch.ones([feat_src.shape[0],1]).to('cuda:0')),1), self.weight_prod)
             #graph.srcdata['h_prod'] = th.tanh(feat_prod_src)#torch.tanh(feat_src)
             graph.srcdata['h_sum'] = feat_sum_src
             graph.srcdata['h_prod'] = torch.tanh(feat_prod_src)
