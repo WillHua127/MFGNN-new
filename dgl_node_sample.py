@@ -47,7 +47,7 @@ parser.add_argument('--fan-out', type=str, default='5,5')
 parser.add_argument("--layers", type=int, default=2,
                     help="number of hidden layers")
 parser.add_argument('--num-workers', type=int, default=0,help="Number of sampling processes. Use 0 for no extra process.")
-parser.add_argument('--batch-size', type=int, default=200)
+parser.add_argument('--batch-size', type=int, default=1000)
 parser.add_argument('--val-batch-size', type=int, default=10000)
 parser.add_argument('--dropout', type=float, default=0.1,
                     help='Dropout rate (1 - keep probability).')
@@ -90,7 +90,7 @@ class DGLGraphConv(nn.Module):
         self.att_vec = nn.Linear(2, 2, bias=False)
 
         self.weight_sum = nn.Parameter(torch.Tensor(in_feats, out_feats))
-        self.weight_prod = nn.Parameter(torch.Tensor(in_feats, rank_dim))
+        self.weight_prod = nn.Parameter(torch.Tensor(in_feats+1, rank_dim))
         self.v = nn.Parameter(torch.Tensor(rank_dim, out_feats))
 
 
@@ -151,7 +151,7 @@ class DGLGraphConv(nn.Module):
                 
             
             feat_sum_src = torch.matmul(feat_src, self.weight_sum)
-            feat_prod_src = torch.matmul(feat_src, self.weight_prod)
+            feat_prod_src = torch.matmul(torch.cat((feat_src, torch.ones([x.shape[0],1]).to('cuda:0')),1), self.weight_prod)
             #graph.srcdata['h_prod'] = th.tanh(feat_prod_src)#torch.tanh(feat_src)
             graph.srcdata['h_sum'] = feat_sum_src
             graph.srcdata['h_prod'] = torch.tanh(feat_prod_src)
