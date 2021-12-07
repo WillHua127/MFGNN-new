@@ -277,7 +277,7 @@ g,n_classes = load_graph_data(args.dataset_name)
 labels = g.ndata.pop('labels')
 features = g.ndata.pop('features')
 #norm = g.ndata.pop('norm')
-g.create_formats_()
+#g.create_formats_()
     
 in_feats = features.shape[1]
 num_class = labels.max()+1
@@ -324,10 +324,10 @@ def train_supervised():
         num_epoch = 0
         for idx in range(10):
             idx_train, idx_val, idx_test = random_disassortative_splits(labels, num_class)
-            if args.cuda:
-                idx_train = idx_train.cuda()
-                idx_val = idx_val.cuda()
-                idx_test = idx_test.cuda()
+#             if args.cuda:
+#                 idx_train = idx_train.cuda()
+#                 idx_val = idx_val.cuda()
+#                 idx_test = idx_test.cuda()
             sampler = dgl.dataloading.MultiLayerNeighborSampler([int(fanout) for fanout in args.fan_out.split(',')])
             dataloader = dgl.dataloading.NodeDataLoader(
                 g,
@@ -342,6 +342,9 @@ def train_supervised():
             #model = TwoCPPooling(in_fea=features.shape[1], out_class=labels.max().item() + 1, hidden1=2*args.hidden, hidden2=args.hidden, dropout=args.dropout)
 
             if args.cuda:
+                idx_train = idx_train.cuda()
+                idx_val = idx_val.cuda()
+                idx_test = idx_test.cuda()
                 model.cuda()
 
             optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
