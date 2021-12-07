@@ -65,7 +65,7 @@ torch.manual_seed(args.seed)
 if args.cuda:
     torch.cuda.manual_seed(args.seed)
     
-device = th.device('cuda:0')
+device = torch.device('cuda:0')
     
 class DGLGraphConv(nn.Module):
     def __init__(self,
