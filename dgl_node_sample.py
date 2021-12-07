@@ -284,13 +284,13 @@ num_class = labels.max()+1
 
 
 
-if args.cuda:
-    features = features.cuda()
-    #adj = adj.cuda()
-    labels = labels.cuda()
-    #idx_train = idx_train.cuda()
-    #idx_val = idx_val.cuda()
-    #idx_test = idx_test.cuda()
+# if args.cuda:
+#     features = features.cuda()
+#     #adj = adj.cuda()
+#     labels = labels.cuda()
+#     #idx_train = idx_train.cuda()
+#     #idx_val = idx_val.cuda()
+#     #idx_test = idx_test.cuda()
 
 
     
@@ -342,6 +342,8 @@ def train_supervised():
             #model = TwoCPPooling(in_fea=features.shape[1], out_class=labels.max().item() + 1, hidden1=2*args.hidden, hidden2=args.hidden, dropout=args.dropout)
 
             if args.cuda:
+                features = features.cuda()
+                labels = labels.cuda()
                 idx_train = idx_train.cuda()
                 idx_val = idx_val.cuda()
                 idx_test = idx_test.cuda()
