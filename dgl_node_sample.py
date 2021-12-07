@@ -65,9 +65,7 @@ torch.manual_seed(args.seed)
 if args.cuda:
     torch.cuda.manual_seed(args.seed)
     
-device = torch.device('cpu')
-    
-    
+device = th.device('cuda:0')
     
 class DGLGraphConv(nn.Module):
     def __init__(self,
@@ -87,16 +85,14 @@ class DGLGraphConv(nn.Module):
         self._out_feats = out_feats
         self._rank_dim = rank_dim
         self._allow_zero_in_degree = allow_zero_in_degree
+        self.att1= nn.Linear(out_feats, 1, bias=False)
+        self.att2 = nn.Linear(out_feats, 1, bias=False)
+        self.att_vec = nn.Linear(2, 2, bias=False)
 
-        if weight:
-            #self.weight = nn.Parameter(th.Tensor(in_feats+1, rank_dim))
-            self.weight_sum = nn.Parameter(torch.Tensor(in_feats, out_feats))
-            self.w2 = nn.Parameter(torch.Tensor(8, out_feats))
-            #self.weight2 = nn.Parameter(th.Tensor(rank_dim, out_feats))
-            #self.bias = nn.Parameter(th.Tensor(rank_dim))
-        else:
-            self.register_parameter('weight', None)
-            
+        self.weight_sum = nn.Parameter(torch.Tensor(in_feats, out_feats))
+        self.weight_prod = nn.Parameter(torch.Tensor(in_feats, rank_dim))
+        self.v = nn.Parameter(torch.Tensor(rank_dim, out_feats))
+
 
 
         self.reset_parameters()
@@ -105,7 +101,11 @@ class DGLGraphConv(nn.Module):
 
     def reset_parameters(self):
         nn.init.xavier_uniform_(self.weight_sum)
-        nn.init.xavier_uniform_(self.w2)
+        nn.init.xavier_uniform_(self.weight_prod)
+        nn.init.xavier_uniform_(self.v)
+        self.att1.reset_parameters()
+        self.att2.reset_parameters()
+        self.att_vec.reset_parameters()
 
     
     def _elementwise_product(self, nodes):
@@ -117,6 +117,11 @@ class DGLGraphConv(nn.Module):
 
     def set_allow_zero_in_degree(self, set_value):
         self._allow_zero_in_degree = set_value
+        
+    def attention(self, prod, add):
+        T = 2
+        att = torch.softmax(self.att_vec(torch.sigmoid(torch.cat([self.att1(prod) ,self.att2(add)],1)))/T,1)
+        return att[:,0][:,None],att[:,1][:,None]
 
     def forward(self, graph, feat):
 
@@ -144,13 +149,19 @@ class DGLGraphConv(nn.Module):
 
 
                 
+            
             feat_sum_src = torch.matmul(feat_src, self.weight_sum)
+            feat_prod_src = torch.matmul(feat_src, self.weight_prod)
             #graph.srcdata['h_prod'] = th.tanh(feat_prod_src)#torch.tanh(feat_src)
-            graph.srcdata['h_prod'] = torch.tanh(feat_sum_src)
+            graph.srcdata['h_sum'] = feat_sum_src
+            graph.srcdata['h_prod'] = torch.tanh(feat_prod_src)
             graph.update_all(fn.copy_src('h_prod', 'm_prod'), self._elementwise_product)
-            #graph.update_all(fn.copy_src('h_sum', 'm_sum'), self._elementwise_sum)
+            graph.update_all(fn.copy_src('h_sum', 'm_sum'), self._elementwise_sum)
             #graph.update_all(fn.copy_src('h_sum', 'm_sum'), fn.sum(msg='m_sum', out='h_sum'))
-            rst = graph.dstdata['h_prod']#+graph.dstdata['h_sum']#+self.bias
+            prod_agg = torch.matmul(graph.dstdata['h_prod'], self.v)
+            sum_agg = graph.dstdata['h_sum']
+            att_prod, att_sum = self.attention(prod_agg, sum_agg)
+            rst = att_prod*prod_agg + att_sum*sum_agg
 
             #rst = self.batch_norm(rst)
             #print("rst1",rst)
@@ -304,10 +315,10 @@ def train_supervised():
     best_time = 0
     best_epoch = 0
 
-    lr = [0.005, 0.001,0.01]#,0.01,
-    weight_decay = [1e-4,5e-4,5e-3] #5e-5,1e-4,5e-4,1e-3,5e-3
-    dropout = [0, 0.1, 0.5, 0.7]#, 0.4, 0.5 ,0.6, 0.7, 0.8, 0.9]
-    for args.lr, args.weight_decay, args.dropout in itertools.product(lr, weight_decay, dropout):
+    lr = [0.05, 0.01,0.002]#,0.01,
+    weight_decay = [1e-4,5e-4,5e-5, 5e-3] #5e-5,1e-4,5e-4,1e-3,5e-3
+    dropout = [0.1, 0.2, 0.3]#, 0.4, 0.5 ,0.6, 0.7, 0.8, 0.9]
+    for args.lr, args.weight_decay in itertools.product(lr, weight_decay):
         result = np.zeros(10)
         t_total = time.time()
         num_epoch = 0
@@ -334,7 +345,6 @@ def train_supervised():
                 model.cuda()
 
             optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-            vlss_mn = np.inf
             vacc_mx = 0.0
             curr_step = 0
             best_test = 0
@@ -375,15 +385,10 @@ def train_supervised():
                 if epoch % args.eval_every == 0:
                     val_acc, test_acc, val_loss, test_loss = evaluate(model, g, features, labels, idx_val, idx_test, device)
                     print('Eval Acc {:.4f}, Eval Loss {:.4f}'.format(val_acc, val_loss))
-                    print(curr_step)
-                    if val_acc >= vacc_mx or val_loss <= vlss_mn:
+                    if val_acc >= vacc_mx:# or val_loss <= vlss_mn:
                         curr_step = 0
-                        if val_acc >= vacc_mx and val_loss <= vlss_mn:
-                            vacc_early_model = val_acc
-                            vlss_early_model = val_loss
-                            best_test = test_acc
-                            vacc_mx = val_acc
-                            vlss_mn = val_loss
+                        best_test = test_acc
+                        vacc_mx = val_acc
                     else:
                         curr_step += 1
                         if curr_step >= patience:
@@ -402,17 +407,14 @@ def train_supervised():
         if np.mean(result)>best_result:
                 best_result = np.mean(result)
                 best_std = np.std(result)
-                #best_dropout = args.dropout
+                best_dropout = args.dropout
                 best_weight_decay = args.weight_decay
                 best_lr = args.lr
                 best_time = five_epochtime
                 best_epoch = num_epoch
 
-    print("Best learning rate %.4f, Best weight decay %.6f, dropout %.4f, Test Mean: %.4f, Test Std: %.4f"%(best_lr, best_weight_decay, 0, best_result, best_std))
+    print("Best learning rate %.4f, Best weight decay %.6f, dropout %.4f, Test Mean: %.4f, Test Std: %.4f"%(best_lr, best_weight_decay, best_dropout, best_result, best_std))
     
     
 
 train_supervised()
-
-
-
