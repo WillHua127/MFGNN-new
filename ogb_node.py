@@ -16,7 +16,6 @@ from dgl.transform import reverse
 from dgl.convert import block_to_graph
 from dgl.heterograph import DGLBlock
 
-
 class DGLGraphConv(nn.Module):
     def __init__(self,
                  in_feats,
@@ -26,7 +25,7 @@ class DGLGraphConv(nn.Module):
                  weight=True,
                  bias=True,
                  activation=None,
-                 allow_zero_in_degree=True):
+                 allow_zero_in_degree=False):
         super(DGLGraphConv, self).__init__()
         if norm not in ('none', 'both', 'right'):
             raise DGLError('Invalid norm value. Must be either "none", "both" or "right".'
@@ -34,20 +33,15 @@ class DGLGraphConv(nn.Module):
         self._in_feats = in_feats
         self._out_feats = out_feats
         self._rank_dim = rank_dim
-        self._norm = norm
         self._allow_zero_in_degree = allow_zero_in_degree
-        self.bn = nn.BatchNorm1d(rank_dim)
+        self.att1= nn.Linear(out_feats, 1, bias=False)
+        self.att2 = nn.Linear(out_feats, 1, bias=False)
+        self.att_vec = nn.Linear(2, 2, bias=False)
 
-        if weight:
-            self.w1 = nn.Parameter(th.Tensor(in_feats, out_feats))
-            self.w2 = nn.Parameter(th.Tensor(in_feats+1, rank_dim))
-            self.v = nn.Parameter(th.Tensor(rank_dim, out_feats))
-            #self.weight_sum = nn.Parameter(th.Tensor(in_feats, out_feats))
-            #self.weight2 = nn.Parameter(th.Tensor(rank_dim, out_feats))
-            #self.bias = nn.Parameter(th.Tensor(rank_dim))
-        else:
-            self.register_parameter('weight', None)
-            
+        self.weight_sum = nn.Parameter(th.Tensor(in_feats, out_feats))
+        self.weight_prod = nn.Parameter(th.Tensor(in_feats+1, rank_dim))
+        self.v = nn.Parameter(th.Tensor(rank_dim, out_feats))
+
 
 
         self.reset_parameters()
@@ -55,9 +49,13 @@ class DGLGraphConv(nn.Module):
         self._activation = activation
 
     def reset_parameters(self):
-        nn.init.xavier_uniform_(self.w1)
-        nn.init.xavier_uniform_(self.w2)
+        nn.init.xavier_uniform_(self.weight_sum)
+        nn.init.xavier_uniform_(self.weight_prod)
         nn.init.xavier_uniform_(self.v)
+        self.att1.reset_parameters()
+        self.att2.reset_parameters()
+        self.att_vec.reset_parameters()
+
     
     def _elementwise_product(self, nodes):
         return {'h_prod':th.prod(nodes.mailbox['m_prod'],dim=1)}
@@ -68,8 +66,13 @@ class DGLGraphConv(nn.Module):
 
     def set_allow_zero_in_degree(self, set_value):
         self._allow_zero_in_degree = set_value
+        
+    def attention(self, prod, add):
+        T = 2
+        att = th.softmax(self.att_vec(th.sigmoid(th.cat([self.att1(prod) ,self.att2(add)],1)))/T,1)
+        return att[:,0][:,None],att[:,1][:,None]
 
-    def forward(self, graph, feat, weight=None, edge_weight=None):
+    def forward(self, graph, feat):
 
         with graph.local_scope():
             if not self._allow_zero_in_degree:
@@ -83,46 +86,50 @@ class DGLGraphConv(nn.Module):
                                    'the issue. Setting ``allow_zero_in_degree`` '
                                    'to be `True` when constructing this module will '
                                    'suppress the check and let the code run.')
-            #aggregate_fn = fn.copy_src('h', 'm')
-            if edge_weight is not None:
-                assert edge_weight.shape[0] == graph.number_of_edges()
-                graph.edata['_edge_weight'] = edge_weight
-                aggregate_fn = fn.u_mul_e('h', '_edge_weight', 'm')
 
             # (BarclayII) For RGCN on heterogeneous graphs we need to support GCN on bipartite.
             feat_src, feat_dst = expand_as_pair(feat, graph)
-            if self._norm == 'both':
-                degs = graph.out_degrees().float().clamp(min=1)
-                norm = th.pow(degs, -0.5)
-                shp = norm.shape + (1,) * (feat_src.dim() - 1)
-                norm = th.reshape(norm, shp)
-                feat_src = feat_src * norm
+#             if self._norm == 'both':
+#                 degs = graph.out_degrees().float().clamp(min=1)
+#                 norm = torch.pow(degs, -0.5)
+#                 shp = norm.shape + (1,) * (feat_src.dim() - 1)
+#                 norm = torch.reshape(norm, shp)
+#                 feat_src = feat_src * norm
 
-            feat_sumsrc = th.matmul(feat_src, self.w1)
-            feat_prodsrc = (th.matmul(th.cat((feat_src, th.ones([feat_src.shape[0],1]).to('cuda:0')),1), self.w2))
-            graph.srcdata['h_sum'] = feat_sumsrc
-            graph.srcdata['h_prod'] = feat_prodsrc
-            graph.update_all(fn.copy_src('h_sum', 'm_sum'), self._elementwise_sum)
-            graph.update_all(fn.copy_src('h_prod', 'm_prod'), self._elementwise_product)
+
+                
             
-            rst = graph.dstdata['h_sum'] + th.matmul(graph.dstdata['h_prod'], self.v)
+            feat_sum_src = th.matmul(feat_src, self.weight_sum)
+            feat_prod_src = th.matmul(th.cat((feat_src, th.ones([feat_src.shape[0],1]).to('cuda:0')),1), self.weight_prod)
+            #graph.srcdata['h_prod'] = th.tanh(feat_prod_src)#torch.tanh(feat_src)
+            graph.srcdata['h_sum'] = feat_sum_src
+            graph.srcdata['h_prod'] = th.tanh(feat_prod_src)
+            graph.update_all(fn.copy_src('h_prod', 'm_prod'), self._elementwise_product)
+            graph.update_all(fn.copy_src('h_sum', 'm_sum'), self._elementwise_sum)
+            #graph.update_all(fn.copy_src('h_sum', 'm_sum'), fn.sum(msg='m_sum', out='h_sum'))
+            prod_agg = th.matmul(graph.dstdata['h_prod'], self.v)
+            sum_agg = graph.dstdata['h_sum']
+            att_prod, att_sum = self.attention(prod_agg, sum_agg)
+            rst = att_prod*prod_agg + att_sum*sum_agg
 
-
-            if self._norm != 'none':
-                degs = graph.in_degrees().float().clamp(min=1)
-                if self._norm == 'both':
-                    norm = th.pow(degs, -0.5)
-                else:
-                    norm = 1.0 / degs
-                shp = norm.shape + (1,) * (feat_dst.dim() - 1)
-                norm = th.reshape(norm, shp)
-                rst = rst * norm
+            #rst = self.batch_norm(rst)
+            #print("rst1",rst)
+            #print(rst)
+            #rst = th.matmul(rst, self.weight2)+graph.dstdata['h_sum']
+            #print("rst2",rst)
+#             if self._norm != 'none':
+#                 degs = graph.in_degrees().float().clamp(min=1)
+#                 if self._norm == 'both':
+#                     norm = torch.pow(degs, -0.5)
+#                 else:
+#                     norm = 1.0 / degs
+#                 shp = norm.shape + (1,) * (feat_dst.dim() - 1)
+#                 norm = torch.reshape(norm, shp)
+#                 rst = rst * norm
 
             #if self.bias is not None:
                 #rst = rst + self.bias
-
-            if self._activation is not None:
-                rst = self._activation(rst)
+                
 
             return rst
 
@@ -143,25 +150,17 @@ class SampleCPPooling(nn.Module):
         self.n_classes = n_classes
         self.layers = nn.ModuleList()
         self.layers.append(DGLGraphConv(in_feats, n_hidden, n_rank))
-        #self.layers.append(dglnn.GraphConv(in_feats, n_hidden))
         for i in range(1, n_layers - 1):
             self.layers.append(DGLGraphConv(n_hidden, n_hidden, n_rank))
-            #self.layers.append(dglnn.GraphConv(n_hidden, n_hidden))
         self.layers.append(DGLGraphConv(n_hidden, n_classes, n_rank))
-        #self.layers.append(dglnn.GraphConv(n_hidden, n_classes))
+
         self.dropout = nn.Dropout(dropout)
         self.activation = activation
 
     def forward(self, blocks, x):
         h = x
         for l, (layer, block) in enumerate(zip(self.layers, blocks)):
-            # We need to first copy the representation of nodes on the RHS from the
-            # appropriate nodes on the LHS.
-            # Note that the shape of h is (num_nodes_LHS, D) and the shape of h_dst
-            # would be (num_nodes_RHS, D)
             h_dst = h[:block.num_dst_nodes()]
-            # Then we compute the updated representation on the RHS.
-            # The shape of h now becomes (num_nodes_RHS, D)
             h = layer(block, (h, h_dst))
             if l != len(self.layers) - 1:
                 h = self.activation(h)
@@ -169,22 +168,11 @@ class SampleCPPooling(nn.Module):
         return h
 
     def inference(self, g, x, device):
-        """
-        Inference with the GraphSAGE model on full neighbors (i.e. without neighbor sampling).
-        g : the entire graph.
-        x : the input of entire node set.
-        The inference code is written in a fashion that it could handle any number of nodes and
-        layers.
-        """
-        # During inference with sampling, multi-layer blocks are very inefficient because
-        # lots of computations in the first few layers are repeated.
-        # Therefore, we compute the representation of all nodes layer by layer.  The nodes
-        # on each layer are of course splitted in batches.
-        # TODO: can we standardize this?
         for l, layer in enumerate(self.layers):
             y = th.zeros(g.num_nodes(), self.n_hidden if l != len(self.layers) - 1 else self.n_classes).to(device)
 
             sampler = dgl.dataloading.MultiLayerFullNeighborSampler(1)
+            #sampler = dgl.dataloading.MultiLayerNeighborSampler([int(10)])
             dataloader = dgl.dataloading.NodeDataLoader(
                 g,
                 th.arange(g.num_nodes()),
@@ -207,6 +195,7 @@ class SampleCPPooling(nn.Module):
                 y[output_nodes] = h
 
             x = y
+
         return y
     
 
