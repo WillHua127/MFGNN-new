@@ -304,6 +304,8 @@ def run(args, device, data, evaluator, dataset):
     iter_tput = []
     best_eval_acc = 0
     best_test_acc = 0
+    patience = 50
+    curr_step = 0
     for epoch in range(args.num_epochs):
         tic = time.time()
 
@@ -341,9 +343,14 @@ def run(args, device, data, evaluator, dataset):
             if args.save_pred:
                 np.savetxt(args.save_pred + '%02d' % epoch, pred.argmax(1).cpu().numpy(), '%d')
             print('Eval Acc {:.4f}'.format(eval_acc))
-            if eval_acc > best_eval_acc:
+            if eval_acc >= best_eval_acc:
+                curr_step = 0
                 best_eval_acc = eval_acc
                 best_test_acc = test_acc
+            else:
+                curr_step += 1
+                if curr_step >= patience:
+                    break
             print('Best Eval Acc {:.4f} Test Acc {:.4f}'.format(best_eval_acc, best_test_acc))
 
     print('Avg epoch time: {}'.format(avg / (epoch - 4)))
