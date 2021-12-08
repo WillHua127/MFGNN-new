@@ -304,7 +304,7 @@ def run(args, device, data, evaluator, dataset):
     iter_tput = []
     best_eval_acc = 0
     best_test_acc = 0
-    patience = 50
+    patience = 100
     curr_step = 0
     for epoch in range(args.num_epochs):
         tic = time.time()
