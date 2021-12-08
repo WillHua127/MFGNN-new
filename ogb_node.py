@@ -208,6 +208,7 @@ class SampleCPPooling(nn.Module):
 
             x = y
         return y
+    
 
 def compute_acc(pred, labels, evaluator, dataset):
     """
@@ -366,22 +367,22 @@ if __name__ == '__main__':
     argparser.add_argument('--gpu', type=int, default=0,
         help="GPU device ID. Use -1 for CPU training")
     argparser.add_argument('--num-epochs', type=int, default=1000)
-    argparser.add_argument('--num-hidden', type=int, default=256)
+    argparser.add_argument('--num-hidden', type=int, default=64)
     argparser.add_argument('--num-layers', type=int, default=2)
-    argparser.add_argument('--fan-out', type=str, default='10,10')
-    argparser.add_argument('--batch-size', type=int, default=1000)
+    argparser.add_argument('--fan-out', type=str, default='5,5')
+    argparser.add_argument('--batch-size', type=int, default=3000)
     argparser.add_argument('--val-batch-size', type=int, default=10000)
     argparser.add_argument('--dataset', type=str,
                     help='Dataset name.', default = 'arxiv')
-    argparser.add_argument('--log-every', type=int, default=20)
+    argparser.add_argument('--log-every', type=int, default=50)
     argparser.add_argument('--eval-every', type=int, default=1)
-    argparser.add_argument('--lr', type=float, default=0.003)
-    argparser.add_argument('--dropout', type=float, default=0.5)
+    argparser.add_argument('--lr', type=float, default=0.01)
+    argparser.add_argument('--dropout', type=float, default=0.0)
     argparser.add_argument('--num-workers', type=int, default=0,
         help="Number of sampling processes. Use 0 for no extra process.")
     argparser.add_argument('--save-pred', type=str, default='')
     argparser.add_argument('--wd', type=float, default=0)
-    argparser.add_argument('--rank', type=int, default=256)
+    argparser.add_argument('--rank', type=int, default=64)
     args = argparser.parse_args()
     
     args.cuda = not args.no_cuda and th.cuda.is_available()
