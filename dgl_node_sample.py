@@ -150,18 +150,19 @@ class DGLGraphConv(nn.Module):
 
                 
             
-            feat_sum_src = torch.matmul(feat_src, self.weight_sum)
+            #feat_sum_src = torch.matmul(feat_src, self.weight_sum)
             feat_prod_src = torch.matmul(torch.cat((feat_src, torch.ones([feat_src.shape[0],1]).to('cuda:0')),1), self.weight_prod)
             #graph.srcdata['h_prod'] = th.tanh(feat_prod_src)#torch.tanh(feat_src)
-            graph.srcdata['h_sum'] = feat_sum_src
+            #graph.srcdata['h_sum'] = feat_sum_src
             graph.srcdata['h_prod'] = torch.tanh(feat_prod_src)
             graph.update_all(fn.copy_src('h_prod', 'm_prod'), self._elementwise_product)
-            graph.update_all(fn.copy_src('h_sum', 'm_sum'), self._elementwise_sum)
+            #graph.update_all(fn.copy_src('h_sum', 'm_sum'), self._elementwise_sum)
             #graph.update_all(fn.copy_src('h_sum', 'm_sum'), fn.sum(msg='m_sum', out='h_sum'))
             prod_agg = torch.matmul(graph.dstdata['h_prod'], self.v)
-            sum_agg = graph.dstdata['h_sum']
-            att_prod, att_sum = self.attention(prod_agg, sum_agg)
-            rst = att_prod*prod_agg + att_sum*sum_agg
+            #sum_agg = graph.dstdata['h_sum']
+            #att_prod, att_sum = self.attention(prod_agg, sum_agg)
+            #rst = att_prod*prod_agg + att_sum*sum_agg
+            rst = prod_agg
 
             #rst = self.batch_norm(rst)
             #print("rst1",rst)
@@ -315,9 +316,9 @@ def train_supervised():
     best_time = 0
     best_epoch = 0
 
-    lr = [0.005, 0.001, 0.01]#,0.01,
+    lr = [0.005, 0.001, 0.01, 0.05]#,0.01,
     weight_decay = [1e-4,5e-4,5e-3] #5e-5,1e-4,5e-4,1e-3,5e-3
-    dropout = [0, 0.1, 0.5, 0.7]#, 0.4, 0.5 ,0.6, 0.7, 0.8, 0.9]
+    dropout = [0, 0.1, 0.3, 0.4, 0.5, 0.7, 0.9]#, 0.4, 0.5 ,0.6, 0.7, 0.8, 0.9]
     for args.lr, args.weight_decay, args.dropout in itertools.product(lr, weight_decay,dropout):
         result = np.zeros(10)
         t_total = time.time()
