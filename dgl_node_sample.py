@@ -223,8 +223,8 @@ class SampleCPPooling(nn.Module):
         for l, layer in enumerate(self.layers):
             y = torch.zeros(g.num_nodes(), self.n_hidden if l != len(self.layers) - 1 else self.n_classes).to(device)
 
-            sampler = dgl.dataloading.MultiLayerFullNeighborSampler(1)
-            #sampler = dgl.dataloading.MultiLayerNeighborSampler([int(10)])
+            #sampler = dgl.dataloading.MultiLayerFullNeighborSampler(1)
+            sampler = dgl.dataloading.MultiLayerNeighborSampler([int(5)])
             dataloader = dgl.dataloading.NodeDataLoader(
                 g,
                 torch.arange(g.num_nodes()),
