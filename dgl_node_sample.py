@@ -33,7 +33,7 @@ parser.add_argument('--epochs', type=int, default=5000,
                     help='Number of epochs to train.')
 parser.add_argument('--lr', type=float, default=0.05,
                     help='Initial learning rate.')
-parser.add_argument('--weight_decay', type=float, default=5e-5,
+parser.add_argument('--weight_decay', type=float, default=5e-2,
                     help='Weight decay (L2 loss on parameters).')
 parser.add_argument('--hidden', type=int, default=64,
                     help='Number of hidden units.')
@@ -317,9 +317,9 @@ def train_supervised():
     best_epoch = 0
 
     lr = [0.005, 0.001, 0.01, 0.05]#,0.01,
-    weight_decay = [1e-4,5e-4,5e-3] #5e-5,1e-4,5e-4,1e-3,5e-3
+    #weight_decay = [1e-4,5e-4,5e-3] #5e-5,1e-4,5e-4,1e-3,5e-3
     dropout = [0, 0.1, 0.3, 0.4, 0.5, 0.7, 0.9]#, 0.4, 0.5 ,0.6, 0.7, 0.8, 0.9]
-    for args.lr, args.weight_decay, args.dropout in itertools.product(lr, weight_decay,dropout):
+    for args.lr, args.dropout in itertools.product(lr,dropout):
         result = np.zeros(10)
         t_total = time.time()
         num_epoch = 0
