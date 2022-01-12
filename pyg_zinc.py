@@ -56,7 +56,7 @@ argparser.add_argument('--dropout', type=float, default=0.0)
 argparser.add_argument('--rank', type=int, default=100)
 argparser.add_argument('--batch', type=int, default=1000)
 args = argparser.parse_args()
-args.hidden,args.rank = args.emb,args.emb
+#args.hidden,args.rank = args.emb,args.emb
 
 train_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split='train')
 val_dataset = ZINC(osp.join('torch_geometric_data','zinc'), subset=True, split='val')
