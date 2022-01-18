@@ -384,9 +384,9 @@ class GCNConv(MessagePassing):
         norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
         #edge_index, edge_attr = self.gcn_norm(edge_index,edge_weight=edge_attr)
         sum_agg, prod_agg = self.propagate(edge_index, x=(x_sum,x_prod), edge_attr = edge_attr, norm=norm)
-        prod_agg = self.v(prod_agg)
+        #prod_agg = self.v(prod_agg)
         #att_prod, att_sum = self.attention(prod_agg, sum_agg)
-        rst = prod_agg#att_prod*prod_agg - att_sum*sum_agg
+        rst = sum_agg#att_prod*prod_agg - att_sum*sum_agg
 
         #return self.v(prod_agg) + F.relu6(x + self.root_emb.weight) * 1./deg.view(-1,1) +sum_agg
         return rst
